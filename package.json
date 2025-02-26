@@ -7,7 +7,10 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:3dwebsite": "node dist/3dwebsite/server/server.mjs"
+    "serve:ssr": "node dist/3dwebsite/server/server.mjs",
+    "dev:ssr": "ng run 3dwebsite:serve-ssr",
+    "build:ssr": "ng build && ng run 3dwebsite:server",
+    "prerender": "ng run 3dwebsite:prerender"
   },
   "private": true,
   "dependencies": {
