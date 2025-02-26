@@ -1,5 +1,11 @@
-<ngt-canvas [sceneGraph]="carScene" [camera]="{position: [0,0,5]}"/>
+<div *ngIf="isLoading$ | async" class="loading-overlay">
+    <div class="loader">{{ progress$ | async | number: '1.0-0' }}%</div>
+  </div>
+
+    <app-sphere></app-sphere>
+
+<!-- <ngt-canvas [sceneGraph]="carScene" [camera]="{position: [2,2,2]}"/>
 <ngt-canvas [sceneGraph]="scene" [camera]="{position: [0,0,5]}"/>
+<ngts-loader /> -->
 
 <router-outlet />
-  

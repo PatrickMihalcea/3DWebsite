@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, viewChild, signal, input } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, ChangeDetectionStrategy, ElementRef, viewChild, signal, input } from '@angular/core';
 import { injectBeforeRender, NgtVector3 } from 'angular-three';
 import { Mesh } from 'three';
 
@@ -16,7 +16,8 @@ import { Mesh } from 'three';
       <ngt-mesh-standard-material [color]="hovered() ? 'darkred' : 'mediumpurple'" />
     </ngt-mesh>
   `,
-schemas: [CUSTOM_ELEMENTS_SCHEMA]
+schemas: [CUSTOM_ELEMENTS_SCHEMA],
+changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Cube {
     position = input<NgtVector3>([0, 0, 0]);
