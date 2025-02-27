@@ -8,13 +8,15 @@ import { Sphere } from './3DComponents/sphere.component';
 import { LoadingManagerService } from './Services/loading-manager.service';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
-
+import { Galaxy } from './3DComponents/galaxy.component';
 import * as THREE from 'three';
+
+
 extend(THREE);
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet, NgtCanvas, NgtsLoader, Sphere, CommonModule],
+    imports: [RouterOutlet, NgtCanvas, NgtsLoader, Sphere, Galaxy, CommonModule],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
