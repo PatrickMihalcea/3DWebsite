@@ -8,17 +8,18 @@ import { Sphere } from './3DComponents/sphere.component';
 import { LoadingManagerService } from './Services/loading-manager.service';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { HeroSceneComponent } from './3DComponents/hero-scene.component';
 
 import * as THREE from 'three';
 extend(THREE);
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet, NgtCanvas, NgtsLoader, Sphere, CommonModule],
+    imports: [RouterOutlet, Sphere, CommonModule, HeroSceneComponent],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
-export class AppComponent {  
+export class AppComponent {
   protected scene = Scene;
   protected carScene = CarScene;
   title = '3dwebsite';

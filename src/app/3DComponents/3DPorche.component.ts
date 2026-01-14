@@ -13,7 +13,7 @@ extend(THREE);
   template: `
     <ngt-mesh>
     @if (porchegltf(); as gltf) {
-      <ngt-primitive *args="[gltf.scene]"/> 
+      <ngt-primitive *args="[gltf.scene]"/>
     }
     </ngt-mesh>
   `,
@@ -21,5 +21,5 @@ extend(THREE);
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Porche {
-    porchegltf = injectGLTF(() => './Porche/scene.gltf')
+    porchegltf = injectGLTF(() => './src/assets/models/Porche/scene.gltf')
 }
