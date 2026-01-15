@@ -27,6 +27,10 @@ type TextRigOptions = {
   speed?: number;
   phase?: number;
 
+  // Grabbing
+  grabTiltIntensity?: number;   // 0..1 (tilt strength)
+  grabMotionIntensity?: number; // 0..1 (positional strength)
+
   // Wrapping/Layout
   textAlignment?: TextAlignment; // default 'center'. left, right, center, justified
   lineHeight?: number; // default size * 1.25
@@ -67,6 +71,15 @@ export class TextRig {
   // Positional float (world units)
   private static readonly FLOAT_MAX_Y = 0.45;
   private static readonly FLOAT_MAX_X = 0.25;
+  // ===== Grab tuning constants (make 1.0 feel like “too much”) =====
+  private static readonly GRAB_MAX_TILT_RAD = THREE.MathUtils.degToRad(14); // strong at 1.0
+  private static readonly GRAB_MAX_ROLL_RAD = THREE.MathUtils.degToRad(10);
+  private static readonly GRAB_MAX_MOTION_WORLD = 0.85; // world units
+  // Hysteresis tuning:
+  // - enter wrap when single-line requiredScale drops BELOW minScale * ENTER
+  // - exit wrap when single-line requiredScale rises ABOVE minScale * EXIT
+  private readonly WRAP_ENTER = 0.97;
+  private readonly WRAP_EXIT = 1.12;
 
   public readonly group = new THREE.Group();
 
@@ -128,11 +141,24 @@ export class TextRig {
   // Wrap state with hysteresis (prevents flip-flop)
   private wrapped = false;
 
-  // Hysteresis tuning:
-  // - enter wrap when single-line requiredScale drops BELOW minScale * ENTER
-  // - exit wrap when single-line requiredScale rises ABOVE minScale * EXIT
-  private readonly WRAP_ENTER = 0.97;
-  private readonly WRAP_EXIT = 1.12;
+  // Grabbing
+  // Grab intensities (0..1). If both 0 -> effectively not grabbable.
+  private grabTiltIntensity = 0.0;
+  private grabMotionIntensity = 0.0;
+
+  // Grab state
+  private isGrabbing = false;
+  private grabAnchor = new THREE.Vector2(0, 0); // [-1..1] where you “grabbed” within the box
+  private grabPull = new THREE.Vector2(0, 0);   // normalized pull vector ([-1..1]ish)
+
+  // Grab springs (local offsets applied on top of base pose)
+  private grabPos = new THREE.Vector3(0, 0, 0);
+  private grabPosVel = new THREE.Vector3(0, 0, 0);
+  private grabPosTarget = new THREE.Vector3(0, 0, 0);
+
+  private grabRot = new THREE.Euler(0, 0, 0, 'XYZ');
+  private grabRotVel = new THREE.Vector3(0, 0, 0); // x,y,z angular velocity
+  private grabRotTarget = new THREE.Euler(0, 0, 0, 'XYZ');
 
   constructor(opts: TextRigOptions) {
     this.text = opts.text ?? '';
@@ -165,6 +191,12 @@ export class TextRig {
     if (typeof opts.phase === 'number') this.setPhase(opts.phase);
     if (typeof opts.wrapSpringIntensity === 'number') {
       this.wrapSpringIntensity = THREE.MathUtils.clamp(opts.wrapSpringIntensity, 0, 1);
+    }
+    if (typeof opts.grabTiltIntensity === 'number') {
+      this.grabTiltIntensity = THREE.MathUtils.clamp(opts.grabTiltIntensity, 0, 1);
+    }
+    if (typeof opts.grabMotionIntensity === 'number') {
+      this.grabMotionIntensity = THREE.MathUtils.clamp(opts.grabMotionIntensity, 0, 1);
     }
 
     // Build hierarchy
@@ -224,6 +256,14 @@ export class TextRig {
     this.phase = v;
   }
 
+  public setGrabTiltIntensity(v: number) {
+    this.grabTiltIntensity = THREE.MathUtils.clamp(v, 0, 1);
+  }
+  public setGrabMotionIntensity(v: number) {
+    this.grabMotionIntensity = THREE.MathUtils.clamp(v, 0, 1);
+  }
+
+
   public layoutForWidthWorld(maxWidthWorld: number): void {
     this.maxLineWidthWorld = Math.max(0.1, maxWidthWorld);
     this.layoutDirty = true;
@@ -238,28 +278,23 @@ export class TextRig {
     const tt = this.t + this.phase;
 
     // Orbit + float
-    const orbitAmp = THREE.MathUtils.lerp(
-      0,
-      TextRig.ORBIT_MAX_RAD,
-      this.orbitIntensity
-    );
+    const orbitAmp = THREE.MathUtils.lerp(0, TextRig.ORBIT_MAX_RAD, this.orbitIntensity);
+    const floatAmp = THREE.MathUtils.lerp(0, TextRig.FLOAT_MAX_Y, this.floatIntensity);
 
-    const floatAmp = THREE.MathUtils.lerp(
-      0,
-      TextRig.FLOAT_MAX_Y,
-      this.floatIntensity
-    );
-
-    // circular sway
     const rx = orbitAmp * Math.sin(tt);
     const ry = orbitAmp * Math.cos(tt);
 
-    // positional float
     const px = TextRig.FLOAT_MAX_X * floatAmp * Math.cos(tt * 0.7);
     const py = floatAmp * Math.sin(tt * 0.65);
 
-    // Pointer influence on whole rig
+    // ---- Grab springs first (so transforms use the latest grabPos/grabRot) ----
+    this.updateGrabSprings(dt);
+
+    // ---- Pointer influence (phobia) ONLY ONCE per frame ----
+    const phobiaWas = this.phobiaSensitivity;
+    if (this.isGrabbing) this.phobiaSensitivity = 0; // fully suppress while grabbing
     this.updatePointerSpring(dt);
+    if (this.isGrabbing) this.phobiaSensitivity = phobiaWas;
 
     const mag = Math.abs(this.phobiaSensitivity);
     const influenceWorld = THREE.MathUtils.lerp(0.0, 0.35, mag);
@@ -270,11 +305,13 @@ export class TextRig {
     const turnX = -this.influenceOffset.y * influenceRot;
     const turnY = -this.influenceOffset.x * influenceRot;
 
-    this.group.rotation.x = this.baseRotation.x + rx + turnX;
-    this.group.rotation.y = this.baseRotation.y + ry + turnY;
+    // Apply transforms (now includes grab offsets updated this frame)
+    this.group.rotation.x = this.baseRotation.x + rx + turnX + this.grabRot.x;
+    this.group.rotation.y = this.baseRotation.y + ry + turnY + this.grabRot.y;
+    this.group.rotation.z = this.baseRotation.z + this.grabRot.z;
 
-    this.group.position.x = this.basePosition.x + px + ix;
-    this.group.position.y = this.basePosition.y + py + iy;
+    this.group.position.x = this.basePosition.x + px + ix + this.grabPos.x;
+    this.group.position.y = this.basePosition.y + py + iy + this.grabPos.y;
 
     // Layout
     if (this.layoutDirty) {
@@ -282,11 +319,9 @@ export class TextRig {
       this.layoutDirty = false;
     }
 
-    // Smooth scale & apply to scaleGroup
     this.updateScaleSpring(dt);
     this.scaleGroup.scale.setScalar(this.currentScale);
 
-    // Smooth word motion to targets
     this.updateWordSprings(dt);
   }
 
@@ -704,5 +739,118 @@ export class TextRig {
       width: widthLocal * s,
       height: heightLocal * s,
     };
+  }
+
+  public beginGrab(anchorX: number, anchorY: number): void {
+    if (this.grabTiltIntensity <= 0 && this.grabMotionIntensity <= 0) return;
+
+    this.isGrabbing = true;
+    this.grabAnchor.set(
+      THREE.MathUtils.clamp(anchorX, -1, 1),
+      THREE.MathUtils.clamp(anchorY, -1, 1)
+    );
+
+    // reset pull so it starts calm
+    this.grabPull.set(0, 0);
+  }
+
+  // Called each pointer move while active
+  // pullX/pullY should be normalized (-1..1) based on drag distance
+  public updateGrab(pullX: number, pullY: number): void {
+    if (!this.isGrabbing) return;
+
+    this.grabPull.set(
+      THREE.MathUtils.clamp(pullX, -1, 1),
+      THREE.MathUtils.clamp(pullY, -1, 1)
+    );
+
+    // Strength based on pull distance
+    const pullMag = THREE.MathUtils.clamp(this.grabPull.length(), 0, 1);
+
+    // Translation target (pull direction)
+    const motionMax = TextRig.GRAB_MAX_MOTION_WORLD * this.grabMotionIntensity;
+    this.grabPosTarget.set(
+      this.grabPull.x * motionMax,
+      this.grabPull.y * motionMax,
+      0
+    );
+
+    // Tilt target
+    const tiltMax = TextRig.GRAB_MAX_TILT_RAD * this.grabTiltIntensity;
+
+    // Pitch (x) responds to vertical pull; yaw (y) responds to horizontal pull
+    const pitch = -this.grabPull.y * tiltMax;
+    const yaw   =  this.grabPull.x * tiltMax;
+
+    // Roll is what gives “grabbed on the side” torque feeling.
+    // Depends on where you grabbed (anchor) + pull direction.
+    const rollMax = TextRig.GRAB_MAX_ROLL_RAD * this.grabTiltIntensity;
+    const roll =
+      (-this.grabPull.x * this.grabAnchor.y + this.grabPull.y * this.grabAnchor.x) * rollMax;
+
+    this.grabRotTarget.set(pitch, yaw, roll, 'XYZ');
+
+    // If you want pull to feel more “hand-like”, you can optionally amplify torque with pullMag:
+    // this.grabRotTarget.x *= (0.6 + 0.4 * pullMag);
+    // this.grabRotTarget.y *= (0.6 + 0.4 * pullMag);
+    // this.grabRotTarget.z *= (0.6 + 0.4 * pullMag);
+  }
+
+  // Called on pointer up/cancel
+  public endGrab(): void {
+    this.isGrabbing = false;
+
+    // spring back to neutral targets
+    this.grabPosTarget.set(0, 0, 0);
+    this.grabRotTarget.set(0, 0, 0, 'XYZ');
+    this.grabPull.set(0, 0);
+  }
+
+  // You’ll use this in HeroScene’s hit-testing
+  public isGrabActive(): boolean {
+    return this.isGrabbing;
+  }
+
+  private updateGrabSprings(dt: number): void {
+    // Butter: fairly stiff but critically damped-ish
+    const kPos = 90;
+    const cPos = 2 * Math.sqrt(kPos) * 0.95;
+
+    // Position spring
+    {
+      const dx = this.grabPos.x - this.grabPosTarget.x;
+      const dy = this.grabPos.y - this.grabPosTarget.y;
+
+      const ax = -kPos * dx - cPos * this.grabPosVel.x;
+      const ay = -kPos * dy - cPos * this.grabPosVel.y;
+
+      this.grabPosVel.x += ax * dt;
+      this.grabPosVel.y += ay * dt;
+
+      this.grabPos.x += this.grabPosVel.x * dt;
+      this.grabPos.y += this.grabPosVel.y * dt;
+    }
+
+    // Rotation spring
+    const kRot = 120;
+    const cRot = 2 * Math.sqrt(kRot) * 0.95;
+
+    {
+      const rx = this.grabRot.x - this.grabRotTarget.x;
+      const ry = this.grabRot.y - this.grabRotTarget.y;
+      const rz = this.grabRot.z - this.grabRotTarget.z;
+
+      const ax = -kRot * rx - cRot * this.grabRotVel.x;
+      const ay = -kRot * ry - cRot * this.grabRotVel.y;
+      const az = -kRot * rz - cRot * this.grabRotVel.z;
+
+      this.grabRotVel.x += ax * dt;
+      this.grabRotVel.y += ay * dt;
+      this.grabRotVel.z += az * dt;
+
+      this.grabRot.x += this.grabRotVel.x * dt;
+      this.grabRot.y += this.grabRotVel.y * dt;
+      this.grabRot.z += this.grabRotVel.z * dt;
+    }
   }
 }

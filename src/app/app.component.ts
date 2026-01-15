@@ -4,7 +4,7 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NgtCanvas, extend } from 'angular-three';
 import { NgtsLoader } from 'angular-three-soba/loaders';
-import { Sphere } from './3DComponents/sphere.component';
+// import { Sphere } from './3DComponents/sphere.component';
 import { LoadingManagerService } from './Services/loading-manager.service';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -15,7 +15,7 @@ extend(THREE);
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet, Sphere, CommonModule, HeroSceneComponent],
+    imports: [RouterOutlet, CommonModule, HeroSceneComponent],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
