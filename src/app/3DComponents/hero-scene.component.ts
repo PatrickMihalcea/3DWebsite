@@ -138,7 +138,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       height: 0.18,
       orbitIntensity: 0.18,
       positionalFloatingIntensity: 0.10,
-      phobiaSensitivity: -0.25,
+      phobiaSensitivity: -0.35,
       speed: 0.8,
       textAlignment: 'center',
       minScale: 0.75,
@@ -170,7 +170,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       bevelSegments: 2,
       orbitIntensity: 0.10,
       positionalFloatingIntensity: 0.06,
-      phobiaSensitivity: -0.22,
+      phobiaSensitivity: -0.42,
       speed: 0.75,
       textAlignment: 'center',
       minScale: 0.8,
@@ -238,7 +238,12 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     if (width === 0 || height === 0) return;
 
     this.camera.aspect = width / height;
-    this.camera.position.z = (width / height) < 0.8 ? 12 : 10;
+    // Smoothly adjust camera distance based on aspect (no breakpoint snap).
+    const aspect = width / Math.max(1, height);
+    const aMin = 0.60; // tall/mobile
+    const aMax = 0.95; // wide/desktop-ish
+    const t = THREE.MathUtils.smoothstep(THREE.MathUtils.clamp(aspect, aMin, aMax), aMin, aMax);
+    this.camera.position.z = THREE.MathUtils.lerp(12, 10, t);
     this.camera.updateProjectionMatrix();
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
