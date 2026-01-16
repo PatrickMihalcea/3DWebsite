@@ -33,6 +33,12 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
 
+  // Anchors allow HTML-like placement without fighting TextRig internals:
+  // - Anchor position = "where this block lives"
+  // - TextRig.group animates relative to that anchor (float/phobia/grab)
+  private titleAnchor!: THREE.Group;
+  private subtitleAnchor!: THREE.Group;
+
   private clock = new THREE.Clock();
   private frameId: number | null = null;
 
@@ -101,6 +107,10 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.scene = new THREE.Scene();
 
+    this.titleAnchor = new THREE.Group();
+    this.subtitleAnchor = new THREE.Group();
+    this.scene.add(this.titleAnchor, this.subtitleAnchor);
+
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     this.camera.position.set(0, 0, 10);
 
@@ -134,13 +144,13 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.titleRig = new TextRig({
       fontUrl,
       text: 'PATRICK MIHALCEA',
-      size: 1.0,
+      size: 0.5,
       height: 0.18,
       orbitIntensity: 0.18,
       positionalFloatingIntensity: 0.10,
       phobiaSensitivity: -0.35,
       speed: 0.8,
-      textAlignment: 'center',
+      textAlignment: 'left',
       minScale: 0.75,
       wrapSpringIntensity: 0.15,
 
@@ -149,9 +159,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       grabMotionIntensity: 0.1,
     });
 
-    this.titleRig.group.position.set(0, 0.35, 0);
+    // Title lives at the anchor; rig animates around (0,0,0) locally.
+    this.titleRig.group.position.set(0, 0, 0);
     this.titleRig.captureBasePose();
-    this.scene.add(this.titleRig.group);
+    this.titleAnchor.position.set(0, this.subtitleGap, 0);
+    this.titleAnchor.add(this.titleRig.group);
 
     const subtitleMaterial = new THREE.MeshStandardMaterial({
       color: 0x2a2a2a,
@@ -161,8 +173,8 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.subtitleRig = new TextRig({
       fontUrl,
-      text: 'SOFTWARE ENGINEER • THREE.JS • ANGULAR',
-      size: 0.33,
+      text: 'SOFTWARE DEVELOPER • THREE.JS • ANGULAR',
+      size: 0.15,
       height: 0.06,
       bevelEnabled: true,
       bevelThickness: 0.01,
@@ -172,7 +184,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       positionalFloatingIntensity: 0.06,
       phobiaSensitivity: -0.42,
       speed: 0.75,
-      textAlignment: 'center',
+      textAlignment: 'left',
       minScale: 0.8,
       material: subtitleMaterial,
       wrapSpringIntensity: 0.20,
@@ -182,11 +194,13 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       grabMotionIntensity: 0.35,
     });
 
-    this.subtitleRig.group.position.set(0, -0.4, 0);
+    // Subtitle also lives at an anchor (so attachment can move the anchor).
+    this.subtitleRig.group.position.set(0, 0, 0);
     this.subtitleRig.captureBasePose();
-    this.scene.add(this.subtitleRig.group);
+    this.subtitleAnchor.position.set(0, -0.4, 0);
+    this.subtitleAnchor.add(this.subtitleRig.group);
 
-    this.subtitleY = this.subtitleRig.group.position.y;
+    this.subtitleY = this.subtitleAnchor.position.y;
     this.subtitleYVel = 0;
 
     this.rigs = [this.titleRig, this.subtitleRig];
@@ -199,7 +213,9 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     for (const rig of this.rigs) rig.update(dt);
 
-    this.updateSubtitleAttachment(dt);
+    if (!this.subtitleRig.isGrabActive()) {
+      this.updateSubtitleAttachment(dt);
+    }
 
     this.renderer.render(this.scene, this.camera);
   };
@@ -209,7 +225,10 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const subtitleBounds = this.subtitleRig.getBoundsWorld();
     if (titleBounds.height === 0 || subtitleBounds.height === 0) return;
 
-    const titleY = this.titleRig.group.position.y;
+    // Attach to the title's *rendered* position (anchor + rig local motion),
+    // so the subtitle follows title float/grab smoothly too.
+    const titleX = this.titleAnchor.position.x + this.titleRig.group.position.x;
+    const titleY = this.titleAnchor.position.y + this.titleRig.group.position.y;
 
     const targetSubtitleY =
       titleY
@@ -226,8 +245,8 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.subtitleYVel += a * dt;
     this.subtitleY += this.subtitleYVel * dt;
 
-    this.subtitleRig.group.position.x = this.titleRig.group.position.x;
-    this.subtitleRig.group.position.y = this.subtitleY;
+    this.subtitleAnchor.position.x = titleX;
+    this.subtitleAnchor.position.y = this.subtitleY;
   }
 
   private onResize(): void {
@@ -290,6 +309,13 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.anchorX = hit.anchorX;
     this.anchorY = hit.anchorY;
 
+    // If we're grabbing the subtitle, freeze the attachment spring at the
+    // anchor's current position so it resumes smoothly on release.
+    if (this.activeRig === this.subtitleRig) {
+      this.subtitleY = this.subtitleAnchor.position.y;
+      this.subtitleYVel = 0;
+    }
+
     this.activeRig.beginGrab(this.anchorX, this.anchorY);
 
     ev.preventDefault();
@@ -325,6 +351,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private onPointerUp(ev: PointerEvent): void {
     if (this.pointerId === ev.pointerId && this.activeRig) {
       this.activeRig.endGrab();
+      // Restart attachment spring from the anchor's current position.
+      if (this.activeRig === this.subtitleRig) {
+        this.subtitleY = this.subtitleAnchor.position.y;
+        this.subtitleYVel = 0;
+      }
     }
     this.activeRig = null;
     this.pointerId = null;

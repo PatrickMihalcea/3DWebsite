@@ -218,6 +218,10 @@ export class TextRig {
     this.baseRotation.copy(this.group.rotation);
   }
 
+  public captureBasePosition(): void {
+    this.basePosition.copy(this.group.position);
+  }
+
   public setText(text: string): void {
     this.text = text;
     if (!this.ready) return;
