@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TextRig } from '../three/text-rig';
 
 @Component({
@@ -19,7 +20,11 @@ import { TextRig } from '../three/text-rig';
     .hero3d {
       width: 100%;
       height: 100vh;
-      background: #f5f5f2;
+      /* Simple soft "void" gradient background (canvas is transparent) */
+      background:
+        radial-gradient(900px 700px at 18% 22%, rgba(255,255,255,0.95), rgba(245,242,248,0.0) 62%),
+        radial-gradient(900px 700px at 78% 68%, rgba(210,205,225,0.55), rgba(210,205,225,0.0) 65%),
+        linear-gradient(135deg, #f7f6f9 0%, #e9e6f0 50%, #d8d3e1 100%);
       overflow: hidden;
       position: relative;
       touch-action: none; /* important for pointer dragging on mobile */
@@ -114,10 +119,16 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
     this.camera.position.set(0, 0, 10);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    // Transparent canvas so CSS background on `.hero3d` shows through.
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(width, height);
-    this.renderer.setClearColor(0xf5f5f2, 1);
+    this.renderer.setClearAlpha(0);
+
+    // Add an environment map so metals look reflective (still transparent background).
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
 
     container.appendChild(this.renderer.domElement);
   }
@@ -141,18 +152,27 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private createText(): void {
     const fontUrl = 'assets/fonts/helvetiker_regular.typeface.json';
 
+    const titleMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x1b1b1b,
+      metalness: 0.9,
+      roughness: 0.12,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.08,
+    });
+
     this.titleRig = new TextRig({
       fontUrl,
-      text: 'PATRICK MIHALCEA',
-      size: 0.5,
+      text: 'BOLDLY VISIONING.',
+      size: 1.0,
       height: 0.18,
       orbitIntensity: 0.18,
       positionalFloatingIntensity: 0.10,
       phobiaSensitivity: -0.35,
       speed: 0.8,
-      textAlignment: 'left',
+      textAlignment: 'center',
       minScale: 0.75,
       wrapSpringIntensity: 0.15,
+      material: titleMaterial,
 
       // Grab feel
       grabTiltIntensity: 0.1,
@@ -173,8 +193,8 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.subtitleRig = new TextRig({
       fontUrl,
-      text: 'SOFTWARE DEVELOPER • THREE.JS • ANGULAR',
-      size: 0.15,
+      text: 'Turning concept, into production.',
+      size: 0.33,
       height: 0.06,
       bevelEnabled: true,
       bevelThickness: 0.01,
@@ -184,7 +204,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       positionalFloatingIntensity: 0.06,
       phobiaSensitivity: -0.42,
       speed: 0.75,
-      textAlignment: 'left',
+      textAlignment: 'center',
       minScale: 0.8,
       material: subtitleMaterial,
       wrapSpringIntensity: 0.20,

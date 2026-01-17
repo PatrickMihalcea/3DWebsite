@@ -181,7 +181,7 @@ export class TextRig {
       new THREE.MeshStandardMaterial({
         color: 0x111111,
         metalness: 0.35,
-        roughness: 0.25,
+        roughness: 0.25
       });
 
     if (typeof opts.orbitIntensity === 'number') this.setOrbitIntensity(opts.orbitIntensity);
