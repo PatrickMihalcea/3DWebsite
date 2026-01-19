@@ -12,6 +12,20 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { LoadingManagerService } from '../Services/loading-manager.service';
 
+type AccelerationMode = 'up' | 'down' | 'linear' | 'arc';
+
+type AnimationCheckpoint = {
+  time: number; // seconds since animation start
+  position: [number, number, number];
+  angle: [number, number, number]; // radians (x,y,z)
+  acceleration: AccelerationMode;
+  /**
+   * Uniform scale for the model at this checkpoint.
+   * Interpolated between checkpoints across each segment.
+   */
+  scale: number;
+};
+
 @Component({
   selector: 'app-sphere',
   standalone: true,
@@ -34,6 +48,31 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   private isBrowser = false;
   private frameId: number | null = null;
+  private clock = new THREE.Clock();
+
+  /**
+   * Flight animation is driven by checkpoints.
+   *
+   * - `time` is seconds from the start of the animation.
+   * - First checkpoint MUST have `time: 0`.
+   * - Each segment interpolates from checkpoint[i] -> checkpoint[i+1].
+   * - Segment easing is controlled by checkpoint[i+1].acceleration:
+   *   - 'up'     => ease-in (speeds up into the new position)
+   *   - 'down'   => ease-out (slows down into the new position)
+   *   - 'arc'    => ease-in-out (speeds up to midpoint, slows down to target)
+   *   - 'linear' => constant speed
+   */
+  private ufo: THREE.Object3D | null = null;
+  private flightStartTime: number | null = null;
+
+  // Edit this array to design new animations quickly.
+  private readonly checkpoints: AnimationCheckpoint[] = [
+    { time: 0, position: [10, 6, -10], angle: [0.2, -2.4, 0], acceleration: 'linear', scale: 0.0001 },
+    // { time: 0, position: [-15, -3, -10], angle: [0, -0.6, -0.1], acceleration: 'linear', scale: 0.8 },
+    // { time: 3.25, position: [-16, -3.2, -10], angle: [0, -0.7, -0.2], acceleration: 'linear', scale: 1 },
+    { time: 3, position: [-3, -1, 0], angle: [-1, -1.0, -1.0], acceleration: 'arc', scale: 0.95 },
+    { time: 6, position: [0, 0.7, 0], angle: [0, 0, 0], acceleration: 'arc', scale: 1 },
+  ];
 
   // Optional: keep reference for cleanup
   private resizeHandler = () => this.onResize();
@@ -73,7 +112,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
       0.1,
       1000
     );
-    this.camera.position.set(2, 3, 5);
+    this.camera.position.set(2, 0, 5);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -88,7 +127,12 @@ export class Sphere implements AfterViewInit, OnDestroy {
       'assets/models/ufo/scene.gltf',
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(1, 1, 1);
+        this.ufo = model;
+        // Initialize pose to first checkpoint and start the flight.
+        this.applyCheckpointPose(model, this.checkpoints[0]);
+        this.flightStartTime = this.clock.getElapsedTime();
+        this.setControlsEnabled(true);
+
         this.scene.add(model);
       },
       undefined,
@@ -118,8 +162,109 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.controls.maxPolarAngle = Math.PI / 2;
   }
 
+  private setControlsEnabled(enabled: boolean): void {
+    if (!this.controls) return;
+    this.controls.enabled = enabled;
+    this.controls.autoRotate = enabled;
+  }
+
+  private easeInCubic(t: number): number {
+    return t * t * t;
+  }
+
+  private easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  /**
+   * Quintic ease-in-out ("smootherstep"): very obvious slow-in + slow-out.
+   * This matches the mental model of "speed up to midpoint, slow down after".
+   */
+  private easeInOutQuint(t: number): number {
+    // 6t^5 - 15t^4 + 10t^3
+    return t * t * t * (t * (t * 6 - 15) + 10);
+  }
+
+  private easeLinear(t: number): number {
+    return t;
+  }
+
+  private easeByMode(t: number, mode: AccelerationMode): number {
+    if (mode === 'up') return this.easeInCubic(t);
+    if (mode === 'down') return this.easeOutCubic(t);
+    if (mode === 'arc') return this.easeInOutQuint(t);
+    return this.easeLinear(t);
+  }
+
+  private applyCheckpointPose(
+    obj: THREE.Object3D,
+    cp: { position: [number, number, number]; angle: [number, number, number]; scale: number }
+  ): void {
+    obj.position.set(cp.position[0], cp.position[1], cp.position[2]);
+    obj.rotation.set(cp.angle[0], cp.angle[1], cp.angle[2]);
+    obj.scale.setScalar(cp.scale);
+  }
+
+  private updateFlightAnimation(elapsedSec: number): boolean {
+    if (!this.ufo) return false;
+    if (!this.checkpoints.length || this.checkpoints[0].time !== 0) return false;
+    if (this.checkpoints.length < 2) return false;
+
+    const last = this.checkpoints[this.checkpoints.length - 1];
+    if (elapsedSec >= last.time) {
+      this.applyCheckpointPose(this.ufo, last);
+      return false;
+    }
+
+    // Find the current segment [a -> b] where a.time <= elapsed < b.time
+    let idx = 0;
+    for (let i = 0; i < this.checkpoints.length - 1; i++) {
+      const a = this.checkpoints[i];
+      const b = this.checkpoints[i + 1];
+      if (elapsedSec >= a.time && elapsedSec < b.time) {
+        idx = i;
+        break;
+      }
+    }
+
+    const a = this.checkpoints[idx];
+    const b = this.checkpoints[idx + 1];
+    const segDuration = Math.max(0.0001, b.time - a.time);
+    const rawT = (elapsedSec - a.time) / segDuration;
+    const t = Math.min(Math.max(rawT, 0), 1);
+    const e = this.easeByMode(t, b.acceleration);
+
+    // Position lerp
+    const fromPos = new THREE.Vector3(a.position[0], a.position[1], a.position[2]);
+    const toPos = new THREE.Vector3(b.position[0], b.position[1], b.position[2]);
+    this.ufo.position.lerpVectors(fromPos, toPos, e);
+
+    // Scale lerp
+    const s = THREE.MathUtils.lerp(a.scale, b.scale, e);
+    this.ufo.scale.setScalar(s);
+
+    // Angle lerp (use quaternions to avoid weird wrap issues)
+    const qa = new THREE.Quaternion().setFromEuler(new THREE.Euler(a.angle[0], a.angle[1], a.angle[2]));
+    const qb = new THREE.Quaternion().setFromEuler(new THREE.Euler(b.angle[0], b.angle[1], b.angle[2]));
+    this.ufo.quaternion.copy(qa).slerp(qb, e);
+
+    return true;
+  }
+
   private animate = (): void => {
     this.frameId = window.requestAnimationFrame(this.animate);
+    const now = this.clock.getElapsedTime();
+    this.clock.getDelta(); // keep internal time stable if you use dt later
+
+    if (this.flightStartTime !== null) {
+      const elapsed = now - this.flightStartTime;
+      const active = this.updateFlightAnimation(elapsed);
+      if (!active) {
+        this.flightStartTime = null;
+        this.setControlsEnabled(true);
+      }
+    }
+
     this.controls?.update();
     this.renderer?.render(this.scene, this.camera);
   };
