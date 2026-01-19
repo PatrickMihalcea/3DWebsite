@@ -65,13 +65,35 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private ufo: THREE.Object3D | null = null;
   private flightStartTime: number | null = null;
 
+  // After OrbitControls interaction, smoothly return camera to its original pose.
+  private orbitInteracting = false;
+  private cameraReturnStartTime: number | null = null;
+  private cameraReturnDurationSec = 1.2;
+
+  private cameraHomePos = new THREE.Vector3();
+  private targetHome = new THREE.Vector3();
+  private cameraReturnFromPos = new THREE.Vector3();
+  private targetReturnFrom = new THREE.Vector3();
+
+  private orbitStartHandler = () => this.onOrbitStart();
+  private orbitEndHandler = () => this.onOrbitEnd();
+
+  // Gentle camera bob (adds a small reversible offset so it doesn't drift)
+  private cameraBobEnabled = true;
+  private cameraBobAmpY = 0.2;
+  private cameraBobAmpX = 0.1;
+  private cameraBobAmpZ = 0;
+  private cameraBobHz = 0.05; // cycles per second
+  private cameraBobPrev = new THREE.Vector3();
+  private cameraBobActiveLastFrame = false;
+
   // Edit this array to design new animations quickly.
   private readonly checkpoints: AnimationCheckpoint[] = [
     { time: 0, position: [10, 6, -10], angle: [0.2, -2.4, 0], acceleration: 'linear', scale: 0.0001 },
     // { time: 0, position: [-15, -3, -10], angle: [0, -0.6, -0.1], acceleration: 'linear', scale: 0.8 },
     // { time: 3.25, position: [-16, -3.2, -10], angle: [0, -0.7, -0.2], acceleration: 'linear', scale: 1 },
     { time: 3, position: [-3, -1, 0], angle: [-1, -1.0, -1.0], acceleration: 'arc', scale: 0.95 },
-    { time: 6, position: [0, 0.7, 0], angle: [0, 0, 0], acceleration: 'arc', scale: 1 },
+    { time: 6, position: [0, 0.7, 0.12], angle: [0, 0, 0], acceleration: 'arc', scale: 1 },
   ];
 
   // Optional: keep reference for cleanup
@@ -112,7 +134,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
       0.1,
       1000
     );
-    this.camera.position.set(2, 0, 5);
+    this.camera.position.set(2, 0.5, 5);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -131,7 +153,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
         // Initialize pose to first checkpoint and start the flight.
         this.applyCheckpointPose(model, this.checkpoints[0]);
         this.flightStartTime = this.clock.getElapsedTime();
-        this.setControlsEnabled(true);
+        this.setControlsEnabled(false);
 
         this.scene.add(model);
       },
@@ -159,13 +181,110 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.controls.dampingFactor = 0.1;
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 1.0;
-    this.controls.maxPolarAngle = Math.PI / 2;
+    // Disable scroll/pinch zoom (dolly) entirely
+    this.controls.enableZoom = false;
+    this.controls.enablePan = false;
+    // Limit vertical orbit (polar angle) so the camera can't go too far above/below the UFO.
+    // Polar angle is measured from "up": 0 = directly above, PI/2 = horizon, PI = directly below.
+    this.controls.minPolarAngle = THREE.MathUtils.degToRad(75);  // don't go too high
+    this.controls.maxPolarAngle = THREE.MathUtils.degToRad(93); // don't go too low
+
+    // Save home camera pose (used for smooth return after orbiting).
+    this.cameraHomePos.copy(this.camera.position);
+    this.targetHome.copy(this.controls.target);
+
+    // Start/end fire when user begins/ends interaction.
+    this.controls.addEventListener('start', this.orbitStartHandler);
+    this.controls.addEventListener('end', this.orbitEndHandler);
   }
 
   private setControlsEnabled(enabled: boolean): void {
     if (!this.controls) return;
     this.controls.enabled = enabled;
     this.controls.autoRotate = enabled;
+  }
+
+  private onOrbitStart(): void {
+    this.orbitInteracting = true;
+    // Cancel any return tween while the user is interacting.
+    this.cameraReturnStartTime = null;
+
+    // Remove any bob offset so OrbitControls works from the true camera pose.
+    this.camera.position.sub(this.cameraBobPrev);
+    this.cameraBobPrev.set(0, 0, 0);
+  }
+
+  private onOrbitEnd(): void {
+    this.orbitInteracting = false;
+    if (!this.controls) return;
+
+    // Ensure return tween starts from the true pose (without bob).
+    this.camera.position.sub(this.cameraBobPrev);
+    this.cameraBobPrev.set(0, 0, 0);
+
+    // Start a smooth return to home camera + target.
+    this.cameraReturnFromPos.copy(this.camera.position);
+    this.targetReturnFrom.copy(this.controls.target);
+    this.cameraReturnStartTime = this.clock.getElapsedTime();
+
+    // Disable controls during the return tween so inertia doesn't fight it.
+    this.controls.enabled = false;
+    this.controls.autoRotate = false;
+  }
+
+  private updateCameraReturn(now: number): boolean {
+    if (!this.controls) return false;
+    if (this.cameraReturnStartTime === null) return false;
+
+    const t = Math.min(Math.max((now - this.cameraReturnStartTime) / this.cameraReturnDurationSec, 0), 1);
+    const e = this.easeOutCubic(t);
+
+    this.camera.position.lerpVectors(this.cameraReturnFromPos, this.cameraHomePos, e);
+    this.controls.target.lerpVectors(this.targetReturnFrom, this.targetHome, e);
+    this.controls.update();
+
+    if (t >= 1) {
+      this.camera.position.copy(this.cameraHomePos);
+      this.controls.target.copy(this.targetHome);
+      this.controls.update();
+      this.cameraReturnStartTime = null;
+
+      // Re-enable orbiting after returning home.
+      this.controls.enabled = true;
+      this.controls.autoRotate = true;
+      return false;
+    }
+
+    return true;
+  }
+
+  private updateCameraBob(now: number): void {
+    if (!this.cameraBobEnabled) return;
+    const active = !this.orbitInteracting && this.cameraReturnStartTime === null;
+    if (!active) {
+      this.cameraBobActiveLastFrame = false;
+      return;
+    }
+
+    const w = 2 * Math.PI * this.cameraBobHz;
+    // Slightly different phases so it feels organic.
+    const x = Math.sin(w * now) * this.cameraBobAmpX;
+    const y = Math.sin(w * now + 1.4) * this.cameraBobAmpY;
+    const z = Math.cos(w * now + 0.7) * this.cameraBobAmpZ;
+
+    const next = new THREE.Vector3(x, y, z);
+
+    // Avoid a one-frame "jump" when bob resumes after orbit/return.
+    if (!this.cameraBobActiveLastFrame) {
+      this.cameraBobPrev.copy(next);
+      this.cameraBobActiveLastFrame = true;
+      return;
+    }
+
+    const delta = next.clone().sub(this.cameraBobPrev);
+    this.camera.position.add(delta);
+    this.cameraBobPrev.copy(next);
+    this.cameraBobActiveLastFrame = true;
   }
 
   private easeInCubic(t: number): number {
@@ -256,7 +375,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
     const now = this.clock.getElapsedTime();
     this.clock.getDelta(); // keep internal time stable if you use dt later
 
-    if (this.flightStartTime !== null) {
+    const returningCamera = !this.orbitInteracting && this.updateCameraReturn(now);
+
+    if (!returningCamera && this.flightStartTime !== null && !this.orbitInteracting) {
       const elapsed = now - this.flightStartTime;
       const active = this.updateFlightAnimation(elapsed);
       if (!active) {
@@ -265,7 +386,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
       }
     }
 
+    // Let OrbitControls apply damping, then add bob on top so it doesn't fight controls.
     this.controls?.update();
+    this.updateCameraBob(now);
     this.renderer?.render(this.scene, this.camera);
   };
 
@@ -294,7 +417,11 @@ export class Sphere implements AfterViewInit, OnDestroy {
       this.frameId = null;
     }
 
-    this.controls?.dispose();
+    if (this.controls) {
+      this.controls.removeEventListener('start', this.orbitStartHandler);
+      this.controls.removeEventListener('end', this.orbitEndHandler);
+      this.controls.dispose();
+    }
 
     // Dispose renderer + remove canvas
     if (this.renderer) {
