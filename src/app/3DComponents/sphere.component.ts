@@ -99,19 +99,6 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private cowStartPos = new THREE.Vector3(0, -6, -1);
   private cowEndPos = new THREE.Vector3(0, 2, -0.25); // tweak to place under UFO
 
-  // After OrbitControls interaction, smoothly return camera to its original pose.
-  private orbitInteracting = false;
-  private cameraReturnStartTime: number | null = null;
-  private cameraReturnDurationSec = 1.2;
-
-  private cameraHomePos = new THREE.Vector3();
-  private targetHome = new THREE.Vector3();
-  private cameraReturnFromPos = new THREE.Vector3();
-  private targetReturnFrom = new THREE.Vector3();
-
-  private orbitStartHandler = () => this.onOrbitStart();
-  private orbitEndHandler = () => this.onOrbitEnd();
-
   // Gentle camera bob (adds a small reversible offset so it doesn't drift)
   private cameraBobEnabled = true;
   private cameraBobAmpY = 0.1;
@@ -141,7 +128,6 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private tugStartClientX = 0;
   private tugStartClientY = 0;
   private tugStartOffset = new THREE.Vector3();
-  private controlsEnabledBeforeTug = true;
   private pointerDownHandler = (ev: PointerEvent) => this.onPointerDown(ev);
   private pointerMoveHandler = (ev: PointerEvent) => this.onPointerMove(ev);
   private pointerUpHandler = (ev: PointerEvent) => this.onPointerUp(ev);
@@ -161,9 +147,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.initScene();
     this.addLights();
     this.addOrbitControls();
-    // Disable OrbitControls interaction during the UFO intro (flight) so the animation plays uninterrupted.
-    // It will be re-enabled when the flight completes.
-    if (this.animateUfo) this.setControlsEnabled(false);
+    // Keep OrbitControls non-interactive always; only toggle auto-rotate around the intro.
+    if (this.animateUfo) this.setAutoRotateEnabled(false);
     this.loadModel();
     this.animate();
 
@@ -212,7 +197,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
         // Initialize pose to first checkpoint and start the flight.
         this.applyCheckpointPose(model, this.checkpoints[0]);
         this.flightStartTime = this.animateUfo ? this.clock.elapsedTime : null;
-        if (this.flightStartTime !== null) this.setControlsEnabled(false);
+        if (this.flightStartTime !== null) this.setAutoRotateEnabled(false);
 
         this.scene.add(model);
       },
@@ -341,12 +326,6 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.tugStartClientY = ev.clientY;
     this.tugStartOffset.copy(this.cows[idx].tugOffset);
 
-    // Disable user orbit input while tugging, but keep auto-rotate on.
-    if (this.controls) {
-      this.controlsEnabledBeforeTug = this.controls.enabled;
-      this.controls.autoRotate = true;
-    }
-
     try {
       this.renderer.domElement.setPointerCapture(ev.pointerId);
     } catch {
@@ -401,13 +380,6 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.tuggingCowIndex = null;
     this.tugPointerId = null;
 
-    // Restore orbit input only if intro has finished; auto-rotate stays on.
-    if (this.controls) {
-      const introDone = this.flightStartTime === null;
-      this.controls.enabled = introDone ? this.controlsEnabledBeforeTug : false;
-      this.controls.autoRotate = true;
-    }
-
     try {
       this.renderer.domElement.releasePointerCapture(ev.pointerId);
     } catch {
@@ -434,6 +406,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.controls.dampingFactor = 0.1;
     this.controls.autoRotate = true;
     this.controls.autoRotateSpeed = 1.0;
+    // Disable ALL user interaction (orbit/pan/zoom) for Sphere.
+    // We still keep OrbitControls around so `autoRotate` can run via `controls.update()`.
+    this.controls.enableRotate = false;
     // Disable scroll/pinch zoom (dolly) entirely
     this.controls.enableZoom = false;
     this.controls.enablePan = false;
@@ -441,83 +416,15 @@ export class Sphere implements AfterViewInit, OnDestroy {
     // Polar angle is measured from "up": 0 = directly above, PI/2 = horizon, PI = directly below.
     this.controls.minPolarAngle = THREE.MathUtils.degToRad(75);  // don't go too high
     this.controls.maxPolarAngle = THREE.MathUtils.degToRad(93); // don't go too low
-
-    // Save home camera pose (used for smooth return after orbiting).
-    this.cameraHomePos.copy(this.camera.position);
-    this.targetHome.copy(this.controls.target);
-
-    // Start/end fire when user begins/ends interaction.
-    this.controls.addEventListener('start', this.orbitStartHandler);
-    this.controls.addEventListener('end', this.orbitEndHandler);
   }
 
-  private setControlsEnabled(enabled: boolean): void {
+  private setAutoRotateEnabled(enabled: boolean): void {
     if (!this.controls) return;
-    this.controls.enabled = enabled;
     this.controls.autoRotate = enabled;
-  }
-
-  private onOrbitStart(): void {
-    this.orbitInteracting = true;
-    // Cancel any return tween while the user is interacting.
-    this.cameraReturnStartTime = null;
-
-    // Remove any bob offset so OrbitControls works from the true camera pose.
-    this.camera.position.sub(this.cameraBobPrev);
-    this.cameraBobPrev.set(0, 0, 0);
-  }
-
-  private onOrbitEnd(): void {
-    this.orbitInteracting = false;
-    if (!this.controls) return;
-
-    // Ensure return tween starts from the true pose (without bob).
-    this.camera.position.sub(this.cameraBobPrev);
-    this.cameraBobPrev.set(0, 0, 0);
-
-    // Start a smooth return to home camera + target.
-    this.cameraReturnFromPos.copy(this.camera.position);
-    this.targetReturnFrom.copy(this.controls.target);
-    this.cameraReturnStartTime = this.clock.elapsedTime;
-
-    // Disable controls during the return tween so inertia doesn't fight it.
-    this.controls.enabled = false;
-    this.controls.autoRotate = false;
-  }
-
-  private updateCameraReturn(now: number): boolean {
-    if (!this.controls) return false;
-    if (this.cameraReturnStartTime === null) return false;
-
-    const t = Math.min(Math.max((now - this.cameraReturnStartTime) / this.cameraReturnDurationSec, 0), 1);
-    const e = this.easeOutCubic(t);
-
-    this.camera.position.lerpVectors(this.cameraReturnFromPos, this.cameraHomePos, e);
-    this.controls.target.lerpVectors(this.targetReturnFrom, this.targetHome, e);
-    this.controls.update();
-
-    if (t >= 1) {
-      this.camera.position.copy(this.cameraHomePos);
-      this.controls.target.copy(this.targetHome);
-      this.controls.update();
-      this.cameraReturnStartTime = null;
-
-      // Re-enable orbiting after returning home.
-      this.controls.enabled = true;
-      this.controls.autoRotate = true;
-      return false;
-    }
-
-    return true;
   }
 
   private updateCameraBob(now: number): void {
     if (!this.cameraBobEnabled) return;
-    const active = !this.orbitInteracting && this.cameraReturnStartTime === null;
-    if (!active) {
-      this.cameraBobActiveLastFrame = false;
-      return;
-    }
 
     const w = 2 * Math.PI * this.cameraBobHz;
     // Slightly different phases so it feels organic.
@@ -630,14 +537,12 @@ export class Sphere implements AfterViewInit, OnDestroy {
     const dt = this.clock.getDelta();
     const now = this.clock.elapsedTime;
 
-    const returningCamera = !this.orbitInteracting && this.updateCameraReturn(now);
-
-    if (!returningCamera && this.flightStartTime !== null && !this.orbitInteracting) {
+    if (this.flightStartTime !== null) {
       const elapsed = now - this.flightStartTime;
       const active = this.updateFlightAnimation(elapsed);
       if (!active) {
         this.flightStartTime = null;
-        this.setControlsEnabled(true);
+        this.setAutoRotateEnabled(true);
       }
     }
 
@@ -730,11 +635,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
       this.frameId = null;
     }
 
-    if (this.controls) {
-      this.controls.removeEventListener('start', this.orbitStartHandler);
-      this.controls.removeEventListener('end', this.orbitEndHandler);
-      this.controls.dispose();
-    }
+    this.controls?.dispose();
 
     // Dispose renderer + remove canvas
     if (this.renderer) {

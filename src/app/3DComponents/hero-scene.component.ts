@@ -51,10 +51,10 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private subtitleRig!: TextRig;
 
   // Responsive alignment for title
-  private readonly mobileBreakpointPx = 768;
+  private readonly mobileBreakpointPx = 900;
   private currentTitleAlignment: 'left' | 'center' = 'left';
   private readonly titleMinScaleDesktop = 0.45;
-  private readonly titleMinScaleMobile = 1;
+  private readonly titleMinScaleMobile = 0.75;
   private currentTitleMinScale = this.titleMinScaleDesktop;
 
   // Attachment spring (subtitle)
@@ -166,7 +166,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.titleRig = new TextRig({
       fontUrl,
-      text: 'TRUSTED DEVELOPER.',
+      text: 'DEVELOPER FOR OUT OF THIS WORLD IDEAS.',
       size: 1.0,
       height: 0.18,
       orbitIntensity: 0.18,
@@ -174,7 +174,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       phobiaSensitivity: -0.35,
       speed: 0.8,
       textAlignment: 'left',
-      minScale: 0.45,
+      minScale: this.titleMinScaleDesktop,
       wrapSpringIntensity: 0.15,
       material: titleMaterial,
 
@@ -197,7 +197,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.subtitleRig = new TextRig({
       fontUrl,
-      text: 'Turning concept, into production.',
+      text: 'From "first contact", to production.',
       size: 0.27,
       height: 0.06,
       bevelEnabled: true,

@@ -8,9 +8,13 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     <section class="panel">
       <div class="panel__inner">
         <div class="panel__kicker">
-        Hi, I'm Patrick Mihalcea, a <b>fullstack software developer</b> with 3 years of experience who <b>turns ideas into production-ready systems</b>. <br> <br>
-        I am <b>passionate about mastering my craft</b>, and crave challenging projects that push me to grow.
-        I care deeply about doing things properly, from design decisions to long-term maintainability.
+        Hi, I'm Patrick Mihalcea, a <b>fullstack software developer</b> with 3 years of experience who is <b>passionate about mastering my craft</b>.
+        <br><br>
+        I crave challenging projects that push me to explore new technologies and grow as a developer.
+        I care deeply about doing things properly, from design decisions to maintainability long after launch.
+        <br><br>
+        If you have a project that you think I would be a good fit for, please feel free to reach out to me.
+        Thank you for visiting my portfolio.
         </div>
       </div>
     </section>
