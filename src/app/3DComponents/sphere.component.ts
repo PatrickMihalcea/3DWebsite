@@ -38,6 +38,7 @@ type AnimationCheckpoint = {
       display: block;
       position: relative;
       overflow: hidden;
+      touch-action: none; /* allow cow tugging without page scroll */
     }
   `]
 })
@@ -76,6 +77,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
     spawnTime: number;
     startQuat: THREE.Quaternion;
     endQuat: THREE.Quaternion;
+    tugOffset: THREE.Vector3;
+    tugVel: THREE.Vector3;
+    tugTarget: THREE.Vector3;
     mixer: THREE.AnimationMixer | null;
     action: THREE.AnimationAction | null;
   }> = [];
@@ -85,6 +89,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
   public cowSpawnIntervalMinSec = 30.0; // random interval (seconds) min
   public cowSpawnIntervalMaxSec = 50.0; // random interval (seconds) max
   public cowMaxActive = 3; // safety cap
+  public cowSensitivity = 0.6; // 0..1 (0 = no tug, 1 = strong tug)
+  private cowMaxTugWorld = 1.5; // world units, scaled by cowSensitivity
 
   private cowAnimSpeed = 1.0;
   private cowAnimIndex = 0;
@@ -127,6 +133,19 @@ export class Sphere implements AfterViewInit, OnDestroy {
   // Optional: keep reference for cleanup
   private resizeHandler = () => this.onResize();
 
+  // Cow tug interaction
+  private raycaster = new THREE.Raycaster();
+  private pointerNdc = new THREE.Vector2();
+  private tuggingCowIndex: number | null = null;
+  private tugPointerId: number | null = null;
+  private tugStartClientX = 0;
+  private tugStartClientY = 0;
+  private tugStartOffset = new THREE.Vector3();
+  private controlsEnabledBeforeTug = true;
+  private pointerDownHandler = (ev: PointerEvent) => this.onPointerDown(ev);
+  private pointerMoveHandler = (ev: PointerEvent) => this.onPointerMove(ev);
+  private pointerUpHandler = (ev: PointerEvent) => this.onPointerUp(ev);
+
   constructor(
     private elRef: ElementRef,
     private loadingService: LoadingManagerService,
@@ -142,10 +161,21 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.initScene();
     this.addLights();
     this.addOrbitControls();
+    // Disable OrbitControls interaction during the UFO intro (flight) so the animation plays uninterrupted.
+    // It will be re-enabled when the flight completes.
+    if (this.animateUfo) this.setControlsEnabled(false);
     this.loadModel();
     this.animate();
 
     window.addEventListener('resize', this.resizeHandler);
+
+    // Tug interactions on the canvas
+    const el = this.renderer.domElement;
+    // Use capture so we can intercept events before OrbitControls (prevents OrbitControls state from leaving NONE).
+    el.addEventListener('pointerdown', this.pointerDownHandler, { passive: false, capture: true });
+    el.addEventListener('pointermove', this.pointerMoveHandler, { passive: false, capture: true });
+    el.addEventListener('pointerup', this.pointerUpHandler, { passive: false, capture: true });
+    el.addEventListener('pointercancel', this.pointerUpHandler, { passive: false, capture: true });
   }
 
   private initScene(): void {
@@ -182,6 +212,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
         // Initialize pose to first checkpoint and start the flight.
         this.applyCheckpointPose(model, this.checkpoints[0]);
         this.flightStartTime = this.animateUfo ? this.clock.elapsedTime : null;
+        if (this.flightStartTime !== null) this.setControlsEnabled(false);
 
         this.scene.add(model);
       },
@@ -254,8 +285,134 @@ export class Sphere implements AfterViewInit, OnDestroy {
       action.play();
     }
 
-    this.cows.push({ wrapper, model: cowModel, spawnTime: now, startQuat, endQuat, mixer, action });
+    this.cows.push({
+      wrapper,
+      model: cowModel,
+      spawnTime: now,
+      startQuat,
+      endQuat,
+      tugOffset: new THREE.Vector3(),
+      tugVel: new THREE.Vector3(),
+      tugTarget: new THREE.Vector3(),
+      mixer,
+      action,
+    });
     this.scene.add(wrapper);
+  }
+
+  private setPointerNdcFromEvent(ev: PointerEvent): boolean {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+    this.pointerNdc.set(
+      ((ev.clientX - rect.left) / rect.width) * 2 - 1,
+      -(((ev.clientY - rect.top) / rect.height) * 2 - 1)
+    );
+    return true;
+  }
+
+  private pickCowIndex(ev: PointerEvent): number | null {
+    if (!this.cows.length) return null;
+    if (!this.setPointerNdcFromEvent(ev)) return null;
+    this.raycaster.setFromCamera(this.pointerNdc, this.camera);
+
+    let bestIdx: number | null = null;
+    let bestDist = Infinity;
+    for (let i = 0; i < this.cows.length; i++) {
+      const hits = this.raycaster.intersectObject(this.cows[i].model, true);
+      if (hits.length && hits[0].distance < bestDist) {
+        bestDist = hits[0].distance;
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  }
+
+  private onPointerDown(ev: PointerEvent): void {
+    if (this.cowSensitivity <= 0) return;
+    const idx = this.pickCowIndex(ev);
+    if (idx === null) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    this.tuggingCowIndex = idx;
+    this.tugPointerId = ev.pointerId;
+    this.tugStartClientX = ev.clientX;
+    this.tugStartClientY = ev.clientY;
+    this.tugStartOffset.copy(this.cows[idx].tugOffset);
+
+    // Disable user orbit input while tugging, but keep auto-rotate on.
+    if (this.controls) {
+      this.controlsEnabledBeforeTug = this.controls.enabled;
+      this.controls.autoRotate = true;
+    }
+
+    try {
+      this.renderer.domElement.setPointerCapture(ev.pointerId);
+    } catch {
+      // ignore
+    }
+  }
+
+  private onPointerMove(ev: PointerEvent): void {
+    if (this.tuggingCowIndex === null) return;
+    if (this.tugPointerId !== ev.pointerId) return;
+    if (this.cowSensitivity <= 0) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const c = this.cows[this.tuggingCowIndex];
+    const dxPx = ev.clientX - this.tugStartClientX;
+    const dyPx = ev.clientY - this.tugStartClientY;
+
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const dist = this.camera.position.distanceTo(c.wrapper.position);
+    const vFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const visibleH = 2 * Math.tan(vFov / 2) * dist;
+    const visibleW = visibleH * this.camera.aspect;
+
+    const worldPerPxX = visibleW / Math.max(1, rect.width);
+    const worldPerPxY = visibleH / Math.max(1, rect.height);
+
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
+
+    const desired = this.tugStartOffset.clone()
+      .addScaledVector(right, dxPx * worldPerPxX)
+      .addScaledVector(up, -dyPx * worldPerPxY);
+
+    const max = this.cowMaxTugWorld * THREE.MathUtils.clamp(this.cowSensitivity, 0, 1);
+    if (desired.length() > max) desired.setLength(max);
+
+    c.tugTarget.copy(desired);
+  }
+
+  private onPointerUp(ev: PointerEvent): void {
+    if (this.tuggingCowIndex === null) return;
+    if (this.tugPointerId !== ev.pointerId) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const idx = this.tuggingCowIndex;
+    if (this.cows[idx]) this.cows[idx].tugTarget.set(0, 0, 0);
+
+    this.tuggingCowIndex = null;
+    this.tugPointerId = null;
+
+    // Restore orbit input only if intro has finished; auto-rotate stays on.
+    if (this.controls) {
+      const introDone = this.flightStartTime === null;
+      this.controls.enabled = introDone ? this.controlsEnabledBeforeTug : false;
+      this.controls.autoRotate = true;
+    }
+
+    try {
+      this.renderer.domElement.releasePointerCapture(ev.pointerId);
+    } catch {
+      // ignore
+    }
   }
 
   private addLights(): void {
@@ -492,7 +649,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
       this.cowNextSpawnTime = now + THREE.MathUtils.randFloat(min, max);
     }
 
-    // Update cows: rise + rotate + clip. Destroy when reaching end position.
+    // Update cows: rise + rotate + clip (+ tug). Destroy when reaching end position.
     if (this.cows.length) {
       const dead: number[] = [];
       for (let i = 0; i < this.cows.length; i++) {
@@ -501,7 +658,25 @@ export class Sphere implements AfterViewInit, OnDestroy {
         const t = THREE.MathUtils.clamp(rawT, 0, 1);
         const e = this.easeOutCubic(t);
 
-        c.wrapper.position.lerpVectors(this.cowStartPos, this.cowEndPos, e);
+        const basePos = new THREE.Vector3().lerpVectors(this.cowStartPos, this.cowEndPos, e);
+
+        // Tug spring: cowSensitivity controls stiffness.
+        const k = THREE.MathUtils.lerp(0, 55, THREE.MathUtils.clamp(this.cowSensitivity, 0, 1));
+        const cDamp = 2 * Math.sqrt(k) * 0.95;
+        const dx = c.tugOffset.x - c.tugTarget.x;
+        const dy = c.tugOffset.y - c.tugTarget.y;
+        const dz = c.tugOffset.z - c.tugTarget.z;
+        const ax = -k * dx - cDamp * c.tugVel.x;
+        const ay = -k * dy - cDamp * c.tugVel.y;
+        const az = -k * dz - cDamp * c.tugVel.z;
+        c.tugVel.x += ax * dt;
+        c.tugVel.y += ay * dt;
+        c.tugVel.z += az * dt;
+        c.tugOffset.x += c.tugVel.x * dt;
+        c.tugOffset.y += c.tugVel.y * dt;
+        c.tugOffset.z += c.tugVel.z * dt;
+
+        c.wrapper.position.copy(basePos).add(c.tugOffset);
         c.wrapper.quaternion.copy(c.startQuat).slerp(c.endQuat, e);
 
         if (c.action && !c.action.isRunning()) c.action.reset().play();
@@ -512,6 +687,10 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
       for (let k = dead.length - 1; k >= 0; k--) {
         const idx = dead[k];
+        if (this.tuggingCowIndex === idx) {
+          this.tuggingCowIndex = null;
+          this.tugPointerId = null;
+        }
         const c = this.cows[idx];
         c.action?.stop();
         c.mixer?.uncacheRoot(c.model);
@@ -559,6 +738,11 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
     // Dispose renderer + remove canvas
     if (this.renderer) {
+      const el = this.renderer.domElement;
+      el.removeEventListener('pointerdown', this.pointerDownHandler, true);
+      el.removeEventListener('pointermove', this.pointerMoveHandler, true);
+      el.removeEventListener('pointerup', this.pointerUpHandler, true);
+      el.removeEventListener('pointercancel', this.pointerUpHandler, true);
       this.renderer.dispose();
       const canvas = this.renderer.domElement;
       canvas?.parentElement?.removeChild(canvas);
