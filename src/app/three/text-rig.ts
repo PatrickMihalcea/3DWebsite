@@ -233,6 +233,11 @@ export class TextRig {
     this.layoutDirty = true;
   }
 
+  public setMinScale(v: number): void {
+    this.minScale = THREE.MathUtils.clamp(v, 0.01, 1.0);
+    this.layoutDirty = true;
+  }
+
   public setOrbitIntensity(v: number): void {
     this.orbitIntensity = THREE.MathUtils.clamp(v, 0, 1);
   }

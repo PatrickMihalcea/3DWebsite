@@ -30,12 +30,12 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     .panel__inner {
       width: min(560px, 92%);
       padding: 24px;
-      border-radius: 18px;
+      // border-radius: 18px;
       // background: rgba(255, 255, 255, 0.18);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      // backdrop-filter: blur(10px);
+      // -webkit-backdrop-filter: blur(10px);
       // border: 1px solid rgba(0, 0, 0, 0.06);
-      color: rgba(15, 15, 18, 0.9);
+      // color: rgba(15, 15, 18, 0.9);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
 

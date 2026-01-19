@@ -53,6 +53,9 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   // Responsive alignment for title
   private readonly mobileBreakpointPx = 768;
   private currentTitleAlignment: 'left' | 'center' = 'left';
+  private readonly titleMinScaleDesktop = 0.45;
+  private readonly titleMinScaleMobile = 1;
+  private currentTitleMinScale = this.titleMinScaleDesktop;
 
   // Attachment spring (subtitle)
   private subtitleY = 0;
@@ -167,7 +170,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       size: 1.0,
       height: 0.18,
       orbitIntensity: 0.18,
-      positionalFloatingIntensity: 0.20,
+      positionalFloatingIntensity: 0.30,
       phobiaSensitivity: -0.35,
       speed: 0.8,
       textAlignment: 'left',
@@ -286,6 +289,13 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     if (desiredTitleAlignment !== this.currentTitleAlignment) {
       this.currentTitleAlignment = desiredTitleAlignment;
       this.titleRig.setTextAlignment(desiredTitleAlignment);
+    }
+
+    // Responsive minScale: let the title stay larger on mobile before wrapping/shrinking.
+    const desiredMinScale = isMobile ? this.titleMinScaleMobile : this.titleMinScaleDesktop;
+    if (desiredMinScale !== this.currentTitleMinScale) {
+      this.currentTitleMinScale = desiredMinScale;
+      this.titleRig.setMinScale(desiredMinScale);
     }
 
     this.camera.aspect = width / height;

@@ -80,8 +80,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   // Gentle camera bob (adds a small reversible offset so it doesn't drift)
   private cameraBobEnabled = true;
-  private cameraBobAmpY = 0.2;
-  private cameraBobAmpX = 0.1;
+  private cameraBobAmpY = 0.1;
+  private cameraBobAmpX = 0.3;
   private cameraBobAmpZ = 0;
   private cameraBobHz = 0.05; // cycles per second
   private cameraBobPrev = new THREE.Vector3();
