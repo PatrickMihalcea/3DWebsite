@@ -51,7 +51,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private subtitleRig!: TextRig;
 
   // Responsive alignment for title
-  private readonly mobileBreakpointPx = 900;
+  private readonly mobileBreakpointPx = 865;
   private currentTitleAlignment: 'left' | 'center' = 'left';
   private readonly titleMinScaleDesktop = 0.45;
   private readonly titleMinScaleMobile = 0.75;

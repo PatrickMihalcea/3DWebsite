@@ -108,6 +108,12 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private cameraBobPrev = new THREE.Vector3();
   private cameraBobActiveLastFrame = false;
 
+  // Mouse-driven camera height
+  public minCameraHeight = 0;
+  public maxCameraHeight = .5;
+  private cameraHeightTarget: number | null = null;
+  private cameraHeightFollowSpeed = 8; // higher = snappier
+
   // Edit this array to design new animations quickly.
   private readonly checkpoints: AnimationCheckpoint[] = [
     { time: 0, position: [10, 6, -10], angle: [0.2, -2.4, 0], acceleration: 'linear', scale: 0.0001 },
@@ -131,6 +137,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private pointerDownHandler = (ev: PointerEvent) => this.onPointerDown(ev);
   private pointerMoveHandler = (ev: PointerEvent) => this.onPointerMove(ev);
   private pointerUpHandler = (ev: PointerEvent) => this.onPointerUp(ev);
+  private globalPointerMoveHandler = (ev: PointerEvent) => this.onGlobalPointerMove(ev);
 
   constructor(
     private elRef: ElementRef,
@@ -161,6 +168,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
     el.addEventListener('pointermove', this.pointerMoveHandler, { passive: false, capture: true });
     el.addEventListener('pointerup', this.pointerUpHandler, { passive: false, capture: true });
     el.addEventListener('pointercancel', this.pointerUpHandler, { passive: false, capture: true });
+
+    // Drive camera "tilt" even when other overlay panes capture pointer events.
+    window.addEventListener('pointermove', this.globalPointerMoveHandler, { passive: true });
   }
 
   private initScene(): void {
@@ -178,6 +188,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
       1000
     );
     this.camera.position.set(2, 0.5, 5);
+    this.cameraHeightTarget = this.camera.position.y;
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -334,6 +345,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
   }
 
   private onPointerMove(ev: PointerEvent): void {
+    this.updateCameraHeightTargetFromPointer(ev);
+
     if (this.tuggingCowIndex === null) return;
     if (this.tugPointerId !== ev.pointerId) return;
     if (this.cowSensitivity <= 0) return;
@@ -365,6 +378,11 @@ export class Sphere implements AfterViewInit, OnDestroy {
     if (desired.length() > max) desired.setLength(max);
 
     c.tugTarget.copy(desired);
+  }
+
+  private onGlobalPointerMove(ev: PointerEvent): void {
+    // No preventDefault/stopPropagation here; we just sample pointer position.
+    this.updateCameraHeightTargetFromPointer(ev);
   }
 
   private onPointerUp(ev: PointerEvent): void {
@@ -421,6 +439,24 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private setAutoRotateEnabled(enabled: boolean): void {
     if (!this.controls) return;
     this.controls.autoRotate = enabled;
+  }
+
+  private updateCameraHeightTargetFromPointer(ev: PointerEvent): void {
+    if (!this.renderer) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    if (rect.height <= 0) return;
+
+    const t = THREE.MathUtils.clamp(1 - ((ev.clientY - rect.top) / rect.height), 0, 1); // top=1
+    const min = Math.min(this.minCameraHeight, this.maxCameraHeight);
+    const max = Math.max(this.minCameraHeight, this.maxCameraHeight);
+    this.cameraHeightTarget = THREE.MathUtils.lerp(min, max, t);
+  }
+
+  private updateCameraHeight(dt: number): void {
+    if (this.cameraHeightTarget === null) return;
+    // Smooth exponential-ish follow
+    const alpha = 1 - Math.exp(-this.cameraHeightFollowSpeed * dt);
+    this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, this.cameraHeightTarget, alpha);
   }
 
   private updateCameraBob(now: number): void {
@@ -606,6 +642,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
     // Let OrbitControls apply damping, then add bob on top so it doesn't fight controls.
     this.controls?.update();
+    this.updateCameraHeight(dt);
     this.updateCameraBob(now);
     this.renderer?.render(this.scene, this.camera);
   };
@@ -629,6 +666,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
     if (!this.isBrowser) return;
 
     window.removeEventListener('resize', this.resizeHandler);
+    window.removeEventListener('pointermove', this.globalPointerMoveHandler);
 
     if (this.frameId !== null) {
       window.cancelAnimationFrame(this.frameId);

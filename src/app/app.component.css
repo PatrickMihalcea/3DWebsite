@@ -63,7 +63,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 865px) {
   .stage {
     grid-template-columns: 1fr;
     /* Use only `fr` so rows always sum to 100% of the stage */
@@ -76,7 +76,7 @@
 
   /* Reorder rows on mobile: middle -> top */
   .stage__middle { grid-row: 1; }
-  .stage__left { grid-row: 2; padding-top: 50px; height: 140%; padding-left: 0px;}
+  .stage__left { grid-row: 2; padding-top: 10px; height: 140%; padding-left: 0px;}
   .stage__right { grid-row: 3;padding-top: 15px; }
 }
 
