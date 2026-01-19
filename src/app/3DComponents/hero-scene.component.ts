@@ -195,7 +195,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.subtitleRig = new TextRig({
       fontUrl,
       text: 'Turning concept, into production.',
-      size: 0.33,
+      size: 0.27,
       height: 0.06,
       bevelEnabled: true,
       bevelThickness: 0.01,

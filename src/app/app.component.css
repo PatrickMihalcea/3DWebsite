@@ -7,9 +7,14 @@
 
 .stage {
   width: 100%;
+  /* Lock the grid to the viewport height (robust on mobile/fullscreen) */
   height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   display: grid;
-  grid-template-columns: 1fr 0.5fr 1fr;
+  grid-template-columns: 1fr 0.75fr 1fr;
+  min-height: 0;
+  overflow: hidden; /* prevent any child from extending document height */
 }
 
 .stage__left,
@@ -18,12 +23,18 @@
   width: 100%;
   height: 100%;
   min-width: 0;
+  min-height: 0; /* critical: allow grid items to shrink instead of overflow */
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
   .stage {
     grid-template-columns: 1fr;
-    grid-template-rows: 50vh 0.5fr 50vh;
+    /* Use only `fr` so rows always sum to 100% of the stage */
+    grid-template-rows:
+      minmax(0, 2fr)
+      minmax(0, 1fr)
+      minmax(0, 2fr);
   }
 }
 
