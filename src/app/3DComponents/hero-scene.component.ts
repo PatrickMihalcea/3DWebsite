@@ -16,22 +16,15 @@ import { TextRig } from '../three/text-rig';
   standalone: true,
   template: `<div class="hero3d"></div>`,
   styles: [`
-    :host { display: block; }
+    :host { display: block; width: 100%; height: 100%; }
     .hero3d {
-      width: 50%;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       /* Background is controlled globally (see src/styles.css). */
       background: transparent;
       overflow: hidden;
       position: relative;
       touch-action: none; /* important for pointer dragging on mobile */
-    }
-
-    @media (max-width: 768px) {
-      .hero3d {
-        width: 100%;
-        height: 50vh;
-      }
     }
   `]
 })
@@ -56,6 +49,10 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   private rigs: TextRig[] = [];
   private titleRig!: TextRig;
   private subtitleRig!: TextRig;
+
+  // Responsive alignment for title
+  private readonly mobileBreakpointPx = 768;
+  private currentTitleAlignment: 'left' | 'center' = 'left';
 
   // Attachment spring (subtitle)
   private subtitleY = 0;
@@ -166,7 +163,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.titleRig = new TextRig({
       fontUrl,
-      text: 'BOLDLY VISIONING.',
+      text: 'TRUSTED DEVELOPER.',
       size: 1.0,
       height: 0.18,
       orbitIntensity: 0.18,
@@ -174,7 +171,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       phobiaSensitivity: -0.35,
       speed: 0.8,
       textAlignment: 'left',
-      minScale: 0.65,
+      minScale: 0.45,
       wrapSpringIntensity: 0.15,
       material: titleMaterial,
 
@@ -279,6 +276,17 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     const { width, height } = container.getBoundingClientRect();
     if (width === 0 || height === 0) return;
+
+    // Switch title alignment based on viewport width (desktop: left, mobile: center)
+    const isMobile =
+      typeof window !== 'undefined' &&
+      (window.matchMedia?.(`(max-width: ${this.mobileBreakpointPx}px)`)?.matches ??
+        window.innerWidth <= this.mobileBreakpointPx);
+    const desiredTitleAlignment: 'left' | 'center' = isMobile ? 'center' : 'left';
+    if (desiredTitleAlignment !== this.currentTitleAlignment) {
+      this.currentTitleAlignment = desiredTitleAlignment;
+      this.titleRig.setTextAlignment(desiredTitleAlignment);
+    }
 
     this.camera.aspect = width / height;
     // Smoothly adjust camera distance based on aspect (no breakpoint snap).

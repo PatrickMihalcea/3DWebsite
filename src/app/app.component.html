@@ -2,7 +2,15 @@
     <div class="loader">{{ progress$ | async | number: '1.0-0' }}%</div>
 </div>
 <app-header-ribbon></app-header-ribbon>
-<app-hero-scene></app-hero-scene>
+<main class="stage">
+  <section class="stage__left">
+    <app-hero-scene></app-hero-scene>
+  </section>
+  <section class="stage__middle"></section>
+  <section class="stage__right">
+    <app-right-panel></app-right-panel>
+  </section>
+</main>
     <!-- <app-sphere></app-sphere> -->
 
 <!-- <ngt-canvas [sceneGraph]="carScene" [camera]="{position: [2,2,2]}"/>
