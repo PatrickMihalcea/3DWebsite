@@ -10,6 +10,7 @@ import { isPlatformBrowser } from '@angular/common';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { LoadingManagerService } from '../Services/loading-manager.service';
 
 type AccelerationMode = 'up' | 'down' | 'linear' | 'arc';
@@ -64,6 +65,33 @@ export class Sphere implements AfterViewInit, OnDestroy {
    */
   private ufo: THREE.Object3D | null = null;
   private flightStartTime: number | null = null;
+
+  // Cow spawner (multiple cows)
+  private cowTemplate: THREE.Object3D | null = null;
+  private cowClips: THREE.AnimationClip[] = [];
+  private cowNextSpawnTime: number | null = null; // seconds since scene start
+  private cows: Array<{
+    wrapper: THREE.Group;
+    model: THREE.Object3D;
+    spawnTime: number;
+    startQuat: THREE.Quaternion;
+    endQuat: THREE.Quaternion;
+    mixer: THREE.AnimationMixer | null;
+    action: THREE.AnimationAction | null;
+  }> = [];
+
+  // Knobs
+  public firstCowTime = 10.0; // seconds after scene start when first cow begins rising
+  public cowSpawnIntervalMinSec = 30.0; // random interval (seconds) min
+  public cowSpawnIntervalMaxSec = 50.0; // random interval (seconds) max
+  public cowMaxActive = 3; // safety cap
+
+  private cowAnimSpeed = 1.0;
+  private cowAnimIndex = 0;
+  private readonly animateUfo = true;
+  private cowRiseDurationSec = 35.0;
+  private cowStartPos = new THREE.Vector3(0, -6, -1);
+  private cowEndPos = new THREE.Vector3(0, 2, -0.25); // tweak to place under UFO
 
   // After OrbitControls interaction, smoothly return camera to its original pose.
   private orbitInteracting = false;
@@ -145,6 +173,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   private loadModel(): void {
     const loader = new GLTFLoader(this.loadingService.getManager());
+    // UFO
     loader.load(
       'assets/models/ufo/scene.gltf',
       (gltf) => {
@@ -152,14 +181,81 @@ export class Sphere implements AfterViewInit, OnDestroy {
         this.ufo = model;
         // Initialize pose to first checkpoint and start the flight.
         this.applyCheckpointPose(model, this.checkpoints[0]);
-        this.flightStartTime = this.clock.getElapsedTime();
-        this.setControlsEnabled(false);
+        this.flightStartTime = this.animateUfo ? this.clock.elapsedTime : null;
 
         this.scene.add(model);
       },
       undefined,
-      (error) => console.error('Error loading GLTF model', error)
+      (error) => console.error('Error loading UFO model', error)
     );
+
+    // Cow
+    loader.load(
+      'assets/models/cow/scene.gltf',
+      (gltf) => {
+        this.cowTemplate = gltf.scene;
+        this.cowClips = gltf.animations ?? [];
+
+        // Debug: list clips once
+        // eslint-disable-next-line no-console
+        console.log(
+          '[cow] animations:',
+          this.cowClips.map((a, i) => ({ i, name: a.name, duration: a.duration, tracks: a.tracks.length }))
+        );
+
+        // Arm the spawner
+        this.cowNextSpawnTime = this.firstCowTime;
+      },
+      undefined,
+      (error) => console.error('Error loading cow model', error)
+    );
+  }
+
+  private spawnCow(now: number): void {
+    if (!this.cowTemplate) return;
+    if (this.cows.length >= this.cowMaxActive) return;
+
+    const cowModel = skeletonClone(this.cowTemplate) as THREE.Object3D;
+
+    const wrapper = new THREE.Group();
+    wrapper.position.copy(this.cowStartPos);
+    wrapper.scale.setScalar(0.0015);
+
+    const startQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+      THREE.MathUtils.randFloat(0, Math.PI * 2),
+      THREE.MathUtils.randFloat(0, Math.PI * 2),
+      THREE.MathUtils.randFloat(0, Math.PI * 2),
+      'XYZ'
+    ));
+    const endQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+      THREE.MathUtils.randFloat(0, Math.PI * 2),
+      THREE.MathUtils.randFloat(0, Math.PI * 2),
+      THREE.MathUtils.randFloat(0, Math.PI * 2),
+      'XYZ'
+    ));
+    wrapper.quaternion.copy(startQuat);
+
+    // Keep model local transform neutral
+    cowModel.position.set(0, 0, 0);
+    cowModel.rotation.set(0, 0, 0);
+    cowModel.scale.setScalar(1);
+    wrapper.add(cowModel);
+
+    let mixer: THREE.AnimationMixer | null = null;
+    let action: THREE.AnimationAction | null = null;
+    if (this.cowClips.length > 0) {
+      const clip = this.cowClips[this.cowAnimIndex] ?? this.cowClips[0];
+      mixer = new THREE.AnimationMixer(cowModel);
+      action = mixer.clipAction(clip);
+      action.reset();
+      action.enabled = true;
+      action.setEffectiveWeight(1);
+      action.setEffectiveTimeScale(this.cowAnimSpeed);
+      action.play();
+    }
+
+    this.cows.push({ wrapper, model: cowModel, spawnTime: now, startQuat, endQuat, mixer, action });
+    this.scene.add(wrapper);
   }
 
   private addLights(): void {
@@ -225,7 +321,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
     // Start a smooth return to home camera + target.
     this.cameraReturnFromPos.copy(this.camera.position);
     this.targetReturnFrom.copy(this.controls.target);
-    this.cameraReturnStartTime = this.clock.getElapsedTime();
+    this.cameraReturnStartTime = this.clock.elapsedTime;
 
     // Disable controls during the return tween so inertia doesn't fight it.
     this.controls.enabled = false;
@@ -372,8 +468,10 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   private animate = (): void => {
     this.frameId = window.requestAnimationFrame(this.animate);
-    const now = this.clock.getElapsedTime();
-    this.clock.getDelta(); // keep internal time stable if you use dt later
+    // IMPORTANT: getElapsedTime() internally calls getDelta(), so calling both will make dt ~0.
+    // Use getDelta() once per frame, and read clock.elapsedTime for "now".
+    const dt = this.clock.getDelta();
+    const now = this.clock.elapsedTime;
 
     const returningCamera = !this.orbitInteracting && this.updateCameraReturn(now);
 
@@ -383,6 +481,42 @@ export class Sphere implements AfterViewInit, OnDestroy {
       if (!active) {
         this.flightStartTime = null;
         this.setControlsEnabled(true);
+      }
+    }
+
+    // Spawn cows on a randomized interval
+    if (this.cowTemplate && this.cowNextSpawnTime !== null && now >= this.cowNextSpawnTime) {
+      this.spawnCow(now);
+      const min = Math.max(0.1, this.cowSpawnIntervalMinSec);
+      const max = Math.max(min, this.cowSpawnIntervalMaxSec);
+      this.cowNextSpawnTime = now + THREE.MathUtils.randFloat(min, max);
+    }
+
+    // Update cows: rise + rotate + clip. Destroy when reaching end position.
+    if (this.cows.length) {
+      const dead: number[] = [];
+      for (let i = 0; i < this.cows.length; i++) {
+        const c = this.cows[i];
+        const rawT = (now - c.spawnTime) / this.cowRiseDurationSec;
+        const t = THREE.MathUtils.clamp(rawT, 0, 1);
+        const e = this.easeOutCubic(t);
+
+        c.wrapper.position.lerpVectors(this.cowStartPos, this.cowEndPos, e);
+        c.wrapper.quaternion.copy(c.startQuat).slerp(c.endQuat, e);
+
+        if (c.action && !c.action.isRunning()) c.action.reset().play();
+        c.mixer?.update(dt);
+
+        if (rawT >= 1) dead.push(i);
+      }
+
+      for (let k = dead.length - 1; k >= 0; k--) {
+        const idx = dead[k];
+        const c = this.cows[idx];
+        c.action?.stop();
+        c.mixer?.uncacheRoot(c.model);
+        this.scene.remove(c.wrapper);
+        this.cows.splice(idx, 1);
       }
     }
 
@@ -429,6 +563,14 @@ export class Sphere implements AfterViewInit, OnDestroy {
       const canvas = this.renderer.domElement;
       canvas?.parentElement?.removeChild(canvas);
     }
+
+    // Remove any spawned cows
+    for (const c of this.cows) {
+      c.action?.stop();
+      c.mixer?.uncacheRoot(c.model);
+      this.scene?.remove(c.wrapper);
+    }
+    this.cows = [];
 
     // Optional: dispose scene resources (good habit if you add lots of meshes/textures)
     this.scene?.traverse((obj) => {
