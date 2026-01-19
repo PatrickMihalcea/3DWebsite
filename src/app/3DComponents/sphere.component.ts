@@ -14,6 +14,7 @@ import { LoadingManagerService } from '../Services/loading-manager.service';
 
 @Component({
   selector: 'app-sphere',
+  standalone: true,
   template: '<div class="sphere-container"></div>',
   styles: [`
     .sphere-container {
@@ -84,7 +85,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private loadModel(): void {
     const loader = new GLTFLoader(this.loadingService.getManager());
     loader.load(
-      'assets/models/Porche/scene.gltf',
+      'assets/models/ufo/scene.gltf',
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(1, 1, 1);

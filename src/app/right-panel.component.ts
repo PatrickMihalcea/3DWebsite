@@ -45,6 +45,9 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       letter-spacing: 0.14em;
       // text-transform: uppercase;
       opacity: 0.75;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
 
     .panel__title {

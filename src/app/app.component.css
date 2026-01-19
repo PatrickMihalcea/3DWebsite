@@ -5,16 +5,40 @@
     width: 100%;
 }
 
-.stage {
+.layer-stack {
+  position: relative;
   width: 100%;
-  /* Lock the grid to the viewport height (robust on mobile/fullscreen) */
+  /* Lock the stack to the viewport height (robust on mobile/fullscreen) */
   height: 100vh;
   height: 100svh;
   height: 100dvh;
+  overflow: hidden;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+}
+
+.layer--background {
+  z-index: 0;
+  /* Allow interacting with the background *through* transparent holes in the foreground */
+  pointer-events: auto;
+}
+
+.layer--foreground {
+  z-index: 1;
+}
+
+.stage {
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-columns: 1fr 0.75fr 1fr;
   min-height: 0;
   overflow: hidden; /* prevent any child from extending document height */
+  /* Make the whole overlay layer click-through by default */
+  pointer-events: none;
 }
 
 .stage__left,
@@ -25,6 +49,17 @@
   min-width: 0;
   min-height: 0; /* critical: allow grid items to shrink instead of overflow */
   overflow: hidden;
+}
+
+/* Re-enable interactions only where you have foreground UI */
+.stage__left,
+.stage__right {
+  pointer-events: auto;
+}
+
+/* Keep the middle column click-through to the background layer */
+.stage__middle {
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
