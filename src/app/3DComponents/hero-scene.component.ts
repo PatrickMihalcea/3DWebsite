@@ -18,16 +18,20 @@ import { TextRig } from '../three/text-rig';
   styles: [`
     :host { display: block; }
     .hero3d {
-      width: 100%;
+      width: 50%;
       height: 100vh;
-      /* Simple soft "void" gradient background (canvas is transparent) */
-      background:
-        radial-gradient(900px 700px at 18% 22%, rgba(255,255,255,0.95), rgba(245,242,248,0.0) 62%),
-        radial-gradient(900px 700px at 78% 68%, rgba(210,205,225,0.55), rgba(210,205,225,0.0) 65%),
-        linear-gradient(135deg, #f7f6f9 0%, #e9e6f0 50%, #d8d3e1 100%);
+      /* Background is controlled globally (see src/styles.css). */
+      background: transparent;
       overflow: hidden;
       position: relative;
       touch-action: none; /* important for pointer dragging on mobile */
+    }
+
+    @media (max-width: 768px) {
+      .hero3d {
+        width: 100%;
+        height: 50vh;
+      }
     }
   `]
 })
@@ -166,11 +170,11 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       size: 1.0,
       height: 0.18,
       orbitIntensity: 0.18,
-      positionalFloatingIntensity: 0.10,
+      positionalFloatingIntensity: 0.20,
       phobiaSensitivity: -0.35,
       speed: 0.8,
-      textAlignment: 'center',
-      minScale: 0.75,
+      textAlignment: 'left',
+      minScale: 0.65,
       wrapSpringIntensity: 0.15,
       material: titleMaterial,
 
@@ -204,7 +208,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       positionalFloatingIntensity: 0.06,
       phobiaSensitivity: -0.42,
       speed: 0.75,
-      textAlignment: 'center',
+      textAlignment: 'left',
       minScale: 0.8,
       material: subtitleMaterial,
       wrapSpringIntensity: 0.20,

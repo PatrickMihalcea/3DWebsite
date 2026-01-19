@@ -1,13 +1,21 @@
 html, body {
-    height:100%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(900px 700px at 18% 22%, rgba(255,255,255,0.95), rgba(245,242,248,0.0) 62%),
+    radial-gradient(900px 700px at 78% 68%, rgba(210,205,225,0.55), rgba(210,205,225,0.0) 65%),
+    linear-gradient(135deg, #f7f6f9 0%, #e9e6f0 50%, #d8d3e1 100%);
 }
 
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: white; /* Optional: Set a background color */
+  display: block;
+  overflow-x: hidden;
+}
+
+app-root {
+  display: block;
+  width: 100%;
+  min-height: 100%;
 }

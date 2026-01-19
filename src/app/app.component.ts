@@ -9,13 +9,14 @@ import { LoadingManagerService } from './Services/loading-manager.service';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { HeroSceneComponent } from './3DComponents/hero-scene.component';
+import { HeaderRibbonComponent } from './header-ribbon.component';
 
 import * as THREE from 'three';
 extend(THREE);
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet, CommonModule, HeroSceneComponent],
+    imports: [RouterOutlet, CommonModule, HeroSceneComponent, HeaderRibbonComponent],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })
