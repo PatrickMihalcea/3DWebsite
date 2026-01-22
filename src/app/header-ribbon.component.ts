@@ -6,10 +6,10 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="ribbon">
-      <div class="ribbon__left">Patrick Mihalcea</div>
+      <a class="ribbon__left" href="/about">Patrick Mihalcea</a>
       <nav class="ribbon__right">
         <a href="/about">Projects</a>
-        <a href="/contact">Contact</a>
+        <!-- <a href="/contact">Contact</a> -->
       </nav>
     </header>
   `,
@@ -40,6 +40,16 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     .ribbon__left,
     .ribbon__right {
       white-space: nowrap;
+    }
+
+    .ribbon__left {
+      color: inherit;
+      text-decoration: none;
+      opacity: 0.92;
+    }
+
+    .ribbon__left:hover {
+      opacity: 1;
     }
 
     .ribbon__right {

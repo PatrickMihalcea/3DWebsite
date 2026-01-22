@@ -10,8 +10,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         <div class="panel__kicker">
         Hi, I'm Patrick Mihalcea, a <b>fullstack software developer</b> with 3 years of experience who is <b>passionate about mastering my craft</b>.
         <br><br>
-        I crave challenging projects that push me to explore new technologies and grow as a developer.
-        I care deeply about doing things properly, from design decisions to maintainability long after launch.
+        I crave challenging projects that push me to <b>explore new technologies</b> and grow as a developer.
+        <b>I care deeply about doing things properly</b>, from design decisions to maintainability long after launch.
         <br><br>
         If you have a project that you think I would be a good fit for, please feel free to reach out to me.
         Thank you for visiting my portfolio.
@@ -52,6 +52,21 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       -webkit-user-select: none;
       -ms-user-select: none;
       user-select: none;
+    }
+
+    @media (max-width: 865px) {
+      .panel__kicker {
+        font-size: 10px;
+      }
+    }
+
+    @media (max-height: 400px) {
+      .panel__kicker {
+        font-size: 10px;
+      }
+      .panel__inner {
+        padding: 12px;
+      }
     }
 
     .panel__title {

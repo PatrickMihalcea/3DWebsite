@@ -116,7 +116,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   // Edit this array to design new animations quickly.
   private readonly checkpoints: AnimationCheckpoint[] = [
-    { time: 0, position: [10, 6, -10], angle: [0.2, -2.4, 0], acceleration: 'linear', scale: 0.0001 },
+    { time: 0, position: [2, 6, -10], angle: [0.2, -2.4, 0], acceleration: 'linear', scale: 0.0001 },
     // { time: 0, position: [-15, -3, -10], angle: [0, -0.6, -0.1], acceleration: 'linear', scale: 0.8 },
     // { time: 3.25, position: [-16, -3.2, -10], angle: [0, -0.7, -0.2], acceleration: 'linear', scale: 1 },
     { time: 3, position: [-3, -1, 0], angle: [-1, -1.0, -1.0], acceleration: 'arc', scale: 0.95 },

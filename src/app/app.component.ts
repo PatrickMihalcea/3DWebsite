@@ -10,6 +10,7 @@ import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { HeroSceneComponent } from './3DComponents/hero-scene.component';
 import { HeaderRibbonComponent } from './header-ribbon.component';
+import { FooterRibbonComponent } from './footer-ribbon.component';
 import { RightPanelComponent } from './right-panel.component';
 
 import * as THREE from 'three';
@@ -19,7 +20,7 @@ extend(THREE);
     selector: 'app-root',
     // `@angular-eslint/no-unused-component-imports` can false-positive with external `templateUrl`.
     // eslint-disable-next-line @angular-eslint/no-unused-component-imports
-    imports: [RouterOutlet, CommonModule, HeroSceneComponent, HeaderRibbonComponent, RightPanelComponent, Sphere],
+    imports: [RouterOutlet, CommonModule, HeroSceneComponent, HeaderRibbonComponent, FooterRibbonComponent, RightPanelComponent, Sphere],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css'
 })

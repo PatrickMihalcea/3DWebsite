@@ -1,18 +1,19 @@
 <div *ngIf="isLoading$ | async" class="loading-overlay">
     <div class="loader">{{ progress$ | async | number: '1.0-0' }}%</div>
 </div>
-<app-header-ribbon></app-header-ribbon>
-<main class="layer-stack">
+<app-header-ribbon class="fade-in" ></app-header-ribbon>
+<app-footer-ribbon></app-footer-ribbon>
+<main class="layer-stack" [class.is-loading]="isLoading$ | async">
   <section class="layer layer--background" aria-hidden="true">
     <app-sphere></app-sphere>
   </section>
 
   <section class="stage layer layer--foreground">
-    <section class="stage__left">
+    <section class="stage__left fade-in">
       <app-hero-scene></app-hero-scene>
     </section>
     <section class="stage__middle"></section>
-    <section class="stage__right">
+    <section class="stage__right fade-in">
       <app-right-panel></app-right-panel>
     </section>
   </section>
