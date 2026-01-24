@@ -1,0 +1,143 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.layer-stack {
+position: relative;
+width: 100%;
+/* Lock the stack to the viewport height (robust on mobile/fullscreen) */
+height: 100vh;
+height: 100svh;
+height: 100dvh;
+overflow: hidden;
+}
+
+.layer {
+position: absolute;
+inset: 0;
+}
+
+.layer--background {
+z-index: 0;
+/* Allow interacting with the background *through* transparent holes in the foreground */
+pointer-events: auto;
+}
+
+.layer--foreground {
+z-index: 1;
+}
+
+.stage {
+width: 100%;
+height: 100%;
+display: grid;
+grid-template-columns: 1fr 0.75fr 1fr;
+min-height: 0;
+overflow: hidden; /* prevent any child from extending document height */
+/* Make the whole overlay layer click-through by default */
+pointer-events: none;
+padding-top: 75px;
+}
+
+.stage__left,
+.stage__middle,
+.stage__right {
+width: 100%;
+height: 100%;
+min-width: 0;
+min-height: 0; /* critical: allow grid items to shrink instead of overflow */
+overflow: hidden;
+}
+
+/* CSS-only fade/slide-in for hero + right panel
+ Start ONLY after loader completes (when .is-loading is removed). */
+.stage__left,
+.stage__right {
+opacity: 0;
+transform: translateY(10px);
+}
+
+.layer-stack:not(.is-loading) .fade-in {
+animation: panelFadeIn 1250ms ease-out forwards;
+animation-delay: 5000ms;
+}
+
+@keyframes panelFadeIn {
+to {
+  opacity: 1;
+  transform: translateY(0);
+}
+}
+
+@media (prefers-reduced-motion: reduce) {
+.stage__left,
+.stage__right {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+}
+
+/* Re-enable interactions only where you have foreground UI */
+.stage__left,
+.stage__right {
+pointer-events: auto;
+}
+
+/* Keep the middle column click-through to the background layer */
+.stage__middle {
+pointer-events: none;
+}
+
+@media (max-width: 865px) {
+.stage {
+  grid-template-columns: 1fr;
+  /* Use only `fr` so rows always sum to 100% of the stage */
+  grid-template-rows:
+    minmax(0, 2fr)
+    minmax(0, 2fr)
+    minmax(0, 2.5fr);
+  padding-top: 0px;
+}
+
+/* Reorder rows on mobile: middle -> top */
+.stage__middle { grid-row: 1; }
+.stage__left { grid-row: 2; padding-top: 40px; height: 140%; padding-left: 0px;}
+.stage__right { grid-row: 3;padding-top: 0px; }
+}
+
+@media (max-height: 450px) {
+.stage {
+  padding-top: 25px;
+}
+.stage_right {
+  padding-top: 0px;
+}
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.866);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  color: white;
+}
+
+.loader {
+  font-size: 2rem;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

@@ -1,14 +1,16 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-header-ribbon',
   standalone: true,
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="ribbon">
-      <a class="ribbon__left" href="/about">Patrick Mihalcea</a>
+      <a class="ribbon__left" routerLink="/home">Patrick Mihalcea</a>
       <nav class="ribbon__right">
-        <a href="/about">Projects</a>
+        <a routerLink="/projects">Projects</a>
         <!-- <a href="/contact">Contact</a> -->
       </nav>
     </header>

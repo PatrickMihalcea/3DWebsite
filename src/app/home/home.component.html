@@ -1,0 +1,23 @@
+<main class="layer-stack" [class.is-loading]="isLoading$ | async">
+  <ng-container *ngIf="(isLoading$ | async) === true">
+    <div class="loading-overlay" role="status" aria-live="polite" aria-label="Loading 3D assets">
+      <div class="loader">
+        {{ ((progress$ | async) ?? 0) | number:'1.0-0' }}%
+      </div>
+    </div>
+  </ng-container>
+
+  <section class="layer layer--background" aria-hidden="true">
+    <app-sphere></app-sphere>
+  </section>
+
+  <section class="stage layer layer--foreground">
+    <section class="stage__left fade-in">
+      <app-hero-scene></app-hero-scene>
+    </section>
+    <section class="stage__middle"></section>
+    <section class="stage__right fade-in">
+      <app-right-panel></app-right-panel>
+    </section>
+  </section>
+</main>

@@ -20,10 +20,6 @@ type AnimationCheckpoint = {
   position: [number, number, number];
   angle: [number, number, number]; // radians (x,y,z)
   acceleration: AccelerationMode;
-  /**
-   * Uniform scale for the model at this checkpoint.
-   * Interpolated between checkpoints across each segment.
-   */
   scale: number;
 };
 
@@ -50,6 +46,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   private isBrowser = false;
   private frameId: number | null = null;
+  private loadModelTimeoutId: number | null = null;
   private clock = new THREE.Clock();
 
   /**
@@ -68,6 +65,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private flightStartTime: number | null = null;
 
   // Cow spawner (multiple cows)
+  private cowSpawnerActive = true;
   private cowTemplate: THREE.Object3D | null = null;
   private cowClips: THREE.AnimationClip[] = [];
   private cowNextSpawnTime: number | null = null; // seconds since scene start
@@ -101,14 +99,15 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   // Gentle camera bob (adds a small reversible offset so it doesn't drift)
   private cameraBobEnabled = true;
-  private cameraBobAmpY = 0.1;
-  private cameraBobAmpX = 0.3;
+  private cameraBobAmpY = 0.4;
+  private cameraBobAmpX = 0.0;
   private cameraBobAmpZ = 0;
   private cameraBobHz = 0.05; // cycles per second
   private cameraBobPrev = new THREE.Vector3();
   private cameraBobActiveLastFrame = false;
 
   // Mouse-driven camera height
+  private cameraHeightEnabled = true;
   public minCameraHeight = 0;
   public maxCameraHeight = .5;
   private cameraHeightTarget: number | null = null;
@@ -122,6 +121,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
     { time: 3, position: [-3, -1, 0], angle: [-1, -1.0, -1.0], acceleration: 'arc', scale: 0.95 },
     { time: 6, position: [0, 0.7, 0.12], angle: [0, 0, 0], acceleration: 'arc', scale: 1 },
   ];
+  private resumeAutoRotateDuringIntoSecondsBefore = 3.5;
 
   // Optional: keep reference for cleanup
   private resizeHandler = () => this.onResize();
@@ -156,7 +156,6 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.addOrbitControls();
     // Keep OrbitControls non-interactive always; only toggle auto-rotate around the intro.
     if (this.animateUfo) this.setAutoRotateEnabled(false);
-    this.loadModel();
     this.animate();
 
     window.addEventListener('resize', this.resizeHandler);
@@ -171,6 +170,11 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
     // Drive camera "tilt" even when other overlay panes capture pointer events.
     window.addEventListener('pointermove', this.globalPointerMoveHandler, { passive: true });
+
+    // Defer GLTF loading by one macrotask to avoid Angular dev-mode NG0100
+    // (ExpressionChangedAfterItHasBeenCheckedError) when the loading manager
+    // flips `isLoading$` during the initial view stability check.
+    this.loadModelTimeoutId = window.setTimeout(() => this.loadModel(), 0);
   }
 
   private initScene(): void {
@@ -382,6 +386,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   private onGlobalPointerMove(ev: PointerEvent): void {
     // No preventDefault/stopPropagation here; we just sample pointer position.
+
     this.updateCameraHeightTargetFromPointer(ev);
   }
 
@@ -453,6 +458,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   }
 
   private updateCameraHeight(dt: number): void {
+    if (!this.cameraHeightEnabled) return;
     if (this.cameraHeightTarget === null) return;
     // Smooth exponential-ish follow
     const alpha = 1 - Math.exp(-this.cameraHeightFollowSpeed * dt);
@@ -563,6 +569,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
     const qb = new THREE.Quaternion().setFromEuler(new THREE.Euler(b.angle[0], b.angle[1], b.angle[2]));
     this.ufo.quaternion.copy(qa).slerp(qb, e);
 
+    if (elapsedSec >= last.time - this.resumeAutoRotateDuringIntoSecondsBefore) {
+      this.setAutoRotateEnabled(true);
+    }
     return true;
   }
 
@@ -583,12 +592,14 @@ export class Sphere implements AfterViewInit, OnDestroy {
     }
 
     // Spawn cows on a randomized interval
-    if (this.cowTemplate && this.cowNextSpawnTime !== null && now >= this.cowNextSpawnTime) {
-      this.spawnCow(now);
-      const min = Math.max(0.1, this.cowSpawnIntervalMinSec);
-      const max = Math.max(min, this.cowSpawnIntervalMaxSec);
-      this.cowNextSpawnTime = now + THREE.MathUtils.randFloat(min, max);
-    }
+    if (this.cowSpawnerActive) {
+      if (this.cowTemplate && this.cowNextSpawnTime !== null && now >= this.cowNextSpawnTime) {
+        this.spawnCow(now);
+        const min = Math.max(0.1, this.cowSpawnIntervalMinSec);
+        const max = Math.max(min, this.cowSpawnIntervalMaxSec);
+        this.cowNextSpawnTime = now + THREE.MathUtils.randFloat(min, max);
+      }
+    };
 
     // Update cows: rise + rotate + clip (+ tug). Destroy when reaching end position.
     if (this.cows.length) {
