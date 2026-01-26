@@ -37,7 +37,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       -webkit-backdrop-filter: blur(10px);
       border-top: 1px solid rgba(0, 0, 0, 0.06);
 
-      color: rgba(0, 0, 0, 0.92);
+      color: rgba(230, 230, 230, 0.92);
       font: 600 12px/1 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       letter-spacing: 0.08em;
       text-transform: uppercase;

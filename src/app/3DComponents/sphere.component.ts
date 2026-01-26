@@ -7,11 +7,17 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { NavigationEnd, Router } from '@angular/router';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { LoadingManagerService } from '../Services/loading-manager.service';
+import { ROUTE_CROSSFADE_MS } from '../Services/route-transitions';
+import { Subscription, filter } from 'rxjs';
 
 type AccelerationMode = 'up' | 'down' | 'linear' | 'arc';
 
@@ -43,11 +49,127 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
   private controls!: OrbitControls;
+  private composer: EffectComposer | null = null;
+  private bloomPass: UnrealBloomPass | null = null;
+  private bloomEnabled = false;
 
   private isBrowser = false;
   private frameId: number | null = null;
   private loadModelTimeoutId: number | null = null;
   private clock = new THREE.Clock();
+  private routeSub: Subscription | null = null;
+
+  // Default OrbitControls constraints for the Sphere scene.
+  // Routes can override these via `routeCameraPresets[route].controls`.
+  private readonly DEFAULT_CONTROLS_LIMITS = {
+    autoRotateSpeed: 1.0,
+    // Polar angle is measured from "up": 0 = directly above, PI/2 = horizon, PI = directly below.
+    minPolarAngle: THREE.MathUtils.degToRad(75),  // don't go too high
+    maxPolarAngle: THREE.MathUtils.degToRad(93),  // don't go too low
+    // OrbitControls defaults (we make them explicit so we don't need to "capture" them at runtime).
+    minDistance: 0,
+    maxDistance: Infinity,
+  } as const;
+
+  /**
+   * Route-driven camera presets.
+   *
+   * These keys correspond to the `data: { animation: '...' }` values in `app.routes.ts`.
+   * Tweak these numbers to taste.
+   */
+  private readonly routeCameraPresets: Record<
+    string,
+    {
+      position: [number, number, number];
+      target: [number, number, number];
+      /**
+       * Horizontal framing shift in screen space.
+       *
+       * - `0` keeps the scene centered (default).
+       * - Positive values push the scene to the **right** (useful to make room for left-side UI).
+       * - Negative values push the scene to the **left**.
+       *
+       * Typical values: `0.15` .. `0.45`. Values near `0.5` approach the screen edge.
+       *
+       * Implementation note: this is implemented via an off-axis perspective projection
+       * using `PerspectiveCamera.filmOffset`, so it does NOT change the world-space orbit center.
+       */
+      frameShiftX?: number; // ~[-0.5..0.5]
+      autoRotate: boolean;
+      /**
+       * If true, pointer movement continuously drives camera Y using
+       * `minCameraHeight`/`maxCameraHeight`.
+       * If false, the camera's Y from the preset is preserved.
+       */
+      pointerHeight: boolean;
+      /** Enable/disable gentle camera bob for this route. */
+      bob: boolean;
+      /** When true, render the scene with a bloom post-processing pass. */
+      bloom: boolean;
+      /** Optional bloom tuning when `bloom: true`. */
+      bloomParams?: Partial<{ strength: number; radius: number; threshold: number }>;
+      /** When true, render the UFO as a glowing particle mesh instead of the GLTF meshes. */
+      ufoParticles: boolean;
+      /** Optional tuning for the UFO particle look. */
+      ufoParticleParams?: Partial<{ opacity: number; size: number; color: number; density: number }>;
+      /** Enable/disable spawning new cows on this route. */
+      cowSpawner: boolean;
+      /**
+       * Optional OrbitControls constraint overrides for this route.
+       * Any omitted values fall back to Sphere's default constraints.
+       */
+      controls?: Partial<{
+        minPolarAngle: number; // radians
+        maxPolarAngle: number; // radians
+        minDistance: number;
+        maxDistance: number;
+        autoRotateSpeed: number;
+      }>;
+    }
+  > = {
+    home: {
+      position: [2, 0.5, 5],
+      target: [0, 0.2, 0],
+      frameShiftX: 0,
+      autoRotate: true,
+      pointerHeight: true,
+      bob: true,
+      bloom: true,
+      bloomParams: { strength: 0.75, radius: 0.35, threshold: 0.15 },
+      ufoParticles: false,
+      cowSpawner: true,
+    },
+    projects: {
+      position: [0, -1, 0],
+      target: [0, 0, 0],
+      // Push the background scene to the right on the Projects route.
+      // Tweak this to taste (0.35..0.50 are common ranges).
+      frameShiftX: 1,
+      autoRotate: true,
+      pointerHeight: false,
+      bob: false,
+      bloom: true,
+      bloomParams: { strength: 0.45, radius: 0.4, threshold: 0.2 },
+      ufoParticles: true,
+      // Reduce perceived "luminosity" for particles (opacity + smaller point size).
+      ufoParticleParams: { opacity: 0.35, size: 0.0212, color: 0x66baff , density: 0.7},
+      cowSpawner: false,
+      // Allow top-down shots.
+      controls: { minPolarAngle: 0, maxPolarAngle: Math.PI },
+    },
+  };
+
+  // Route camera tween state
+  private routeCamActive = false;
+  private routeCamElapsedSec = 0;
+  private routeCamDurationSec = ROUTE_CROSSFADE_MS / 1000;
+  private routeCamFromPos = new THREE.Vector3();
+  private routeCamToPos = new THREE.Vector3();
+  private routeCamFromTarget = new THREE.Vector3();
+  private routeCamToTarget = new THREE.Vector3();
+  private routeCamAutoRotateAfter = true;
+  private routeCamFromFrameShiftX = 0;
+  private routeCamToFrameShiftX = 0;
 
   /**
    * Flight animation is driven by checkpoints.
@@ -61,7 +183,13 @@ export class Sphere implements AfterViewInit, OnDestroy {
    *   - 'arc'    => ease-in-out (speeds up to midpoint, slows down to target)
    *   - 'linear' => constant speed
    */
-  private ufo: THREE.Object3D | null = null;
+  private ufo: THREE.Object3D | null = null; // wrapper that receives animation transforms
+  private ufoModel: THREE.Object3D | null = null; // original GLTF scene
+  private ufoPoints: THREE.Points | null = null; // particle representation
+  private ufoParticlesDesired = false; // set by current route; applied once UFO loads
+  private ufoParticleParamsDesired: Partial<{ opacity: number; size: number; color: number; density: number }> = {};
+  private ufoPointsMaterial: THREE.PointsMaterial | null = null;
+  private ufoPointsAllPositions: Float32Array | null = null; // cached full vertex list (xyzxyz...)
   private flightStartTime: number | null = null;
 
   // Cow spawner (multiple cows)
@@ -95,7 +223,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private readonly animateUfo = true;
   private cowRiseDurationSec = 35.0;
   private cowStartPos = new THREE.Vector3(0, -6, -1);
-  private cowEndPos = new THREE.Vector3(0, 2, -0.25); // tweak to place under UFO
+  private cowEndPos = new THREE.Vector3(0, 2, -0.55); // tweak to place under UFO
 
   // Gentle camera bob (adds a small reversible offset so it doesn't drift)
   private cameraBobEnabled = true;
@@ -142,6 +270,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   constructor(
     private elRef: ElementRef,
     private loadingService: LoadingManagerService,
+    private router: Router,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
@@ -175,9 +304,242 @@ export class Sphere implements AfterViewInit, OnDestroy {
     // (ExpressionChangedAfterItHasBeenCheckedError) when the loading manager
     // flips `isLoading$` during the initial view stability check.
     this.loadModelTimeoutId = window.setTimeout(() => this.loadModel(), 0);
+
+    // Drive camera pose from route changes (Home vs Projects, etc).
+    this.setupRouteCamera();
+  }
+
+  private setupRouteCamera(): void {
+    // Apply initial route preset (no animation).
+    this.applyRouteCameraPreset(this.getActiveRouteAnimationKey(), true);
+
+    // Then animate on subsequent navigations.
+    this.routeSub?.unsubscribe();
+    this.routeSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(() => {
+        this.applyRouteCameraPreset(this.getActiveRouteAnimationKey(), false);
+      });
+  }
+
+  private getActiveRouteAnimationKey(): string {
+    // Walk to the deepest primary route and read its `data.animation` key.
+    let r = this.router.routerState.snapshot.root;
+    while (r.firstChild) r = r.firstChild;
+    return (r.data?.['animation'] as string | undefined) ?? 'home';
+  }
+
+  private applyRouteCameraPreset(key: string, immediate: boolean): void {
+    const preset = this.routeCameraPresets[key] ?? this.routeCameraPresets['home'];
+    const toPos = new THREE.Vector3(preset.position[0], preset.position[1], preset.position[2]);
+    const toTarget = new THREE.Vector3(preset.target[0], preset.target[1], preset.target[2]);
+    const toFrameShiftX = preset.frameShiftX ?? 0;
+
+    // Keep duration in sync in case you edit ROUTE_CROSSFADE_MS at runtime.
+    this.routeCamDurationSec = Math.max(0.05, ROUTE_CROSSFADE_MS / 1000);
+
+    if (immediate) {
+      this.camera.position.copy(toPos);
+      if (this.controls) this.controls.target.copy(toTarget);
+      this.camera.lookAt(toTarget);
+      this.applyFrameShiftX(toFrameShiftX);
+      // IMPORTANT: pointer-driven height will otherwise "snap" camera Y back into the
+      // [minCameraHeight..maxCameraHeight] range right after the tween completes.
+      this.cameraHeightEnabled = preset.pointerHeight;
+      this.cameraBobEnabled = preset.bob;
+      this.cameraHeightTarget = preset.pointerHeight ? this.camera.position.y : null;
+      this.setAutoRotateEnabled(preset.autoRotate);
+      this.applyControlsLimitsForRoute(preset);
+      this.applyBloomForRoute(preset);
+      this.applyUfoParticlesForRoute(preset);
+      this.applyCowSpawnerForRoute(preset);
+      this.routeCamActive = false;
+      return;
+    }
+
+    // Start tween from current camera pose.
+    this.routeCamFromPos.copy(this.camera.position);
+    this.routeCamToPos.copy(toPos);
+
+    const currentTarget = this.controls?.target ?? new THREE.Vector3(0, 0, 0);
+    this.routeCamFromTarget.copy(currentTarget);
+    this.routeCamToTarget.copy(toTarget);
+
+    this.routeCamFromFrameShiftX = this.getCurrentFrameShiftX();
+    this.routeCamToFrameShiftX = toFrameShiftX;
+
+    this.routeCamElapsedSec = 0;
+    this.routeCamActive = true;
+    this.routeCamAutoRotateAfter = preset.autoRotate;
+
+    // Avoid controls fighting the route tween.
+    this.setAutoRotateEnabled(false);
+    this.cameraBobActiveLastFrame = false;
+
+    // Apply per-route camera behaviors during/after the tween.
+    this.cameraHeightEnabled = preset.pointerHeight;
+    this.cameraBobEnabled = preset.bob;
+    this.cameraHeightTarget = preset.pointerHeight ? this.camera.position.y : null;
+
+    // Apply per-route OrbitControls constraints now, so the tween isn't snapped/clamped mid-way.
+    this.applyControlsLimitsForRoute(preset);
+
+    // Apply bloom toggle for this route (creates composer lazily if needed).
+    this.applyBloomForRoute(preset);
+
+    // Toggle UFO render mode (mesh vs particles) for this route.
+    this.applyUfoParticlesForRoute(preset);
+
+    // Enable/disable cow spawning for this route.
+    this.applyCowSpawnerForRoute(preset);
+  }
+
+  private applyControlsLimitsForRoute(
+    preset: { controls?: Partial<{ minPolarAngle: number; maxPolarAngle: number; minDistance: number; maxDistance: number; autoRotateSpeed: number }> }
+  ): void {
+    if (!this.controls) return;
+
+    const o = preset.controls ?? {};
+    this.controls.minPolarAngle = o.minPolarAngle ?? this.DEFAULT_CONTROLS_LIMITS.minPolarAngle;
+    this.controls.maxPolarAngle = o.maxPolarAngle ?? this.DEFAULT_CONTROLS_LIMITS.maxPolarAngle;
+    this.controls.minDistance = o.minDistance ?? this.DEFAULT_CONTROLS_LIMITS.minDistance;
+    this.controls.maxDistance = o.maxDistance ?? this.DEFAULT_CONTROLS_LIMITS.maxDistance;
+    this.controls.autoRotateSpeed = o.autoRotateSpeed ?? this.DEFAULT_CONTROLS_LIMITS.autoRotateSpeed;
+  }
+
+  private applyBloomForRoute(preset: { bloom: boolean; bloomParams?: Partial<{ strength: number; radius: number; threshold: number }> }): void {
+    this.bloomEnabled = !!preset.bloom;
+    if (this.bloomEnabled) {
+      this.ensureBloomComposer();
+      if (this.bloomPass && preset.bloomParams) {
+        const p = preset.bloomParams;
+        if (typeof p.strength === 'number') this.bloomPass.strength = p.strength;
+        if (typeof p.radius === 'number') this.bloomPass.radius = p.radius;
+        if (typeof p.threshold === 'number') this.bloomPass.threshold = p.threshold;
+      }
+    }
+  }
+
+  private applyUfoParticlesForRoute(
+    preset: { ufoParticles: boolean; ufoParticleParams?: Partial<{ opacity: number; size: number; color: number; density: number }> }
+  ): void {
+    this.ufoParticlesDesired = !!preset.ufoParticles;
+    this.ufoParticleParamsDesired = preset.ufoParticleParams ?? {};
+    // Apply material changes immediately if points already exist.
+    if (this.ufoPointsMaterial) {
+      if (typeof this.ufoParticleParamsDesired.opacity === 'number') this.ufoPointsMaterial.opacity = this.ufoParticleParamsDesired.opacity;
+      if (typeof this.ufoParticleParamsDesired.size === 'number') this.ufoPointsMaterial.size = this.ufoParticleParamsDesired.size;
+      if (typeof this.ufoParticleParamsDesired.color === 'number') this.ufoPointsMaterial.color.setHex(this.ufoParticleParamsDesired.color);
+      this.ufoPointsMaterial.needsUpdate = true;
+    }
+    // Apply density changes immediately if points already exist.
+    if (this.ufoPoints && this.ufoPointsAllPositions) {
+      this.applyUfoParticleDensity(this.ufoParticleParamsDesired.density ?? 0.5);
+    }
+    this.updateUfoRenderMode();
+  }
+
+  private updateUfoRenderMode(): void {
+    if (!this.ufoModel || !this.ufoPoints) return;
+    this.ufoModel.visible = !this.ufoParticlesDesired;
+    this.ufoPoints.visible = this.ufoParticlesDesired;
+  }
+
+  private applyCowSpawnerForRoute(preset: { cowSpawner: boolean }): void {
+    const next = !!preset.cowSpawner;
+    // If we are re-enabling, restart the schedule so it's predictable.
+    if (next && !this.cowSpawnerActive) {
+      this.cowNextSpawnTime = this.clock.elapsedTime + this.firstCowTime;
+    }
+    // If we are disabling, delete any cows already spawned so the route state is clean.
+    if (!next && this.cowSpawnerActive) {
+      // Cancel any active tug so we don't keep referencing deleted indices.
+      this.tuggingCowIndex = null;
+      this.tugPointerId = null;
+
+      for (const c of this.cows) {
+        c.action?.stop();
+        c.mixer?.uncacheRoot(c.model);
+        this.scene?.remove(c.wrapper);
+      }
+      this.cows = [];
+      this.cowNextSpawnTime = null;
+    }
+    this.cowSpawnerActive = next;
+  }
+
+  private ensureBloomComposer(): void {
+    if (!this.renderer || !this.scene || !this.camera) return;
+    if (this.composer && this.bloomPass) return;
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    const size = new THREE.Vector2();
+    this.renderer.getSize(size);
+
+    // Bloom defaults (tweak to taste).
+    this.bloomPass = new UnrealBloomPass(size, 0.9, 0.7, 0.12);
+    this.composer.addPass(this.bloomPass);
+  }
+
+  private disposeComposer(): void {
+    // EffectComposer doesn't expose a stable public dispose() across all versions.
+    // Safely dispose internal render targets if present.
+    const c = this.composer as any;
+    try {
+      c?.renderTarget1?.dispose?.();
+      c?.renderTarget2?.dispose?.();
+    } catch {
+      // ignore
+    }
+    this.bloomPass = null;
+    this.composer = null;
+  }
+
+  private updateRouteCamera(dt: number): boolean {
+    if (!this.routeCamActive) return false;
+
+    this.routeCamElapsedSec += dt;
+    const t = THREE.MathUtils.clamp(this.routeCamElapsedSec / this.routeCamDurationSec, 0, 1);
+    const e = this.easeInOutQuint(t);
+
+    const pos = new THREE.Vector3().lerpVectors(this.routeCamFromPos, this.routeCamToPos, e);
+    const target = new THREE.Vector3().lerpVectors(this.routeCamFromTarget, this.routeCamToTarget, e);
+    const frameShiftX = THREE.MathUtils.lerp(this.routeCamFromFrameShiftX, this.routeCamToFrameShiftX, e);
+
+    this.camera.position.copy(pos);
+    if (this.controls) this.controls.target.copy(target);
+    this.camera.lookAt(target);
+    this.applyFrameShiftX(frameShiftX);
+
+    if (t >= 1) {
+      this.routeCamActive = false;
+      this.cameraHeightTarget = this.cameraHeightEnabled ? this.camera.position.y : null;
+      this.setAutoRotateEnabled(this.routeCamAutoRotateAfter);
+    }
+
+    return true;
+  }
+
+  private getCurrentFrameShiftX(): number {
+    // filmOffset is in mm; convert it back into our normalized [-0.5..0.5] scale.
+    // We intentionally map so positive shiftX means "content moves right".
+    const filmWidth = this.camera?.getFilmWidth?.() ?? 0;
+    if (!filmWidth) return 0;
+    return -(this.camera.filmOffset ?? 0) / filmWidth;
+  }
+
+  private applyFrameShiftX(shiftX: number): void {
+    if (!this.camera) return;
+    const filmWidth = this.camera.getFilmWidth();
+    // Convention: positive shiftX pushes the content to the right.
+    this.camera.filmOffset = -shiftX * filmWidth;
+    this.camera.updateProjectionMatrix();
   }
 
   private initScene(): void {
+    requestAnimationFrame(() => {this.onResize()}); // ensure the container is ready
     const container = this.elRef.nativeElement.querySelector('.sphere-container') as HTMLElement;
     if (!container) return;
 
@@ -208,13 +570,26 @@ export class Sphere implements AfterViewInit, OnDestroy {
       'assets/models/ufo/scene.gltf',
       (gltf) => {
         const model = gltf.scene;
-        this.ufo = model;
+        // Wrap the UFO so we can swap render modes (mesh vs particles) while keeping
+        // a single animated transform target.
+        const wrapper = new THREE.Group();
+        wrapper.add(model);
+
+        const points = this.buildPointsFromObject(model, this.ufoParticleParamsDesired);
+        points.visible = false;
+        wrapper.add(points);
+
+        this.ufo = wrapper;
+        this.ufoModel = model;
+        this.ufoPoints = points;
+        this.updateUfoRenderMode();
+
         // Initialize pose to first checkpoint and start the flight.
-        this.applyCheckpointPose(model, this.checkpoints[0]);
+        this.applyCheckpointPose(wrapper, this.checkpoints[0]);
         this.flightStartTime = this.animateUfo ? this.clock.elapsedTime : null;
         if (this.flightStartTime !== null) this.setAutoRotateEnabled(false);
 
-        this.scene.add(model);
+        this.scene.add(wrapper);
       },
       undefined,
       (error) => console.error('Error loading UFO model', error)
@@ -240,6 +615,80 @@ export class Sphere implements AfterViewInit, OnDestroy {
       undefined,
       (error) => console.error('Error loading cow model', error)
     );
+  }
+
+  private buildPointsFromObject(
+    root: THREE.Object3D,
+    params: Partial<{ opacity: number; size: number; color: number; density: number }> = {}
+  ): THREE.Points {
+    // Build a single Points cloud from mesh vertices in `root`, expressed in root-local space.
+    root.updateWorldMatrix(true, true);
+    const invRoot = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    const tmp = new THREE.Vector3();
+    const mat = new THREE.Matrix4();
+
+    // Cache a full list of vertex positions once; density will subsample from this.
+    const all: number[] = [];
+
+    root.traverse((obj) => {
+      const mesh = obj as THREE.Mesh;
+      const geom = (mesh as any).geometry as THREE.BufferGeometry | undefined;
+      if (!mesh.isMesh || !geom) return;
+
+      const posAttr = geom.getAttribute('position') as THREE.BufferAttribute | undefined;
+      if (!posAttr) return;
+
+      mesh.updateWorldMatrix(true, false);
+      mat.multiplyMatrices(invRoot, mesh.matrixWorld); // root-local transform
+
+      for (let i = 0; i < posAttr.count; i += 1) {
+        tmp.fromBufferAttribute(posAttr, i).applyMatrix4(mat);
+        all.push(tmp.x, tmp.y, tmp.z);
+      }
+    });
+
+    const geometry = new THREE.BufferGeometry();
+    this.ufoPointsAllPositions = new Float32Array(all);
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+
+    const material = new THREE.PointsMaterial({
+      color: params.color ?? 0x66baff,
+      size: params.size ?? 0.024,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: params.opacity ?? 0.35,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.ufoPointsMaterial = material;
+    const points = new THREE.Points(geometry, material);
+    this.ufoPoints = points;
+    this.applyUfoParticleDensity(params.density ?? 0.5);
+    return points;
+  }
+
+  private applyUfoParticleDensity(density: number): void {
+    if (!this.ufoPoints || !this.ufoPointsAllPositions) return;
+    const d = THREE.MathUtils.clamp(density, 0, 1);
+
+    // Map density [0..1] -> stride [MAX_STRIDE..1]
+    const MAX_STRIDE = 20;
+    const stride = Math.max(1, Math.round(THREE.MathUtils.lerp(MAX_STRIDE, 1, d)));
+
+    const src = this.ufoPointsAllPositions;
+    const out: number[] = [];
+    // src is xyzxyz..., so step by stride vertices => stride*3 floats
+    const step = stride * 3;
+    for (let i = 0; i < src.length; i += step) {
+      out.push(src[i], src[i + 1], src[i + 2]);
+    }
+    // Always keep at least one point
+    if (out.length === 0 && src.length >= 3) out.push(src[0], src[1], src[2]);
+
+    const geom = this.ufoPoints.geometry as THREE.BufferGeometry;
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(out, 3));
+    geom.computeBoundingSphere();
   }
 
   private spawnCow(now: number): void {
@@ -428,7 +877,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
     this.controls.autoRotate = true;
-    this.controls.autoRotateSpeed = 1.0;
+    this.controls.autoRotateSpeed = this.DEFAULT_CONTROLS_LIMITS.autoRotateSpeed;
     // Disable ALL user interaction (orbit/pan/zoom) for Sphere.
     // We still keep OrbitControls around so `autoRotate` can run via `controls.update()`.
     this.controls.enableRotate = false;
@@ -436,9 +885,10 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.controls.enableZoom = false;
     this.controls.enablePan = false;
     // Limit vertical orbit (polar angle) so the camera can't go too far above/below the UFO.
-    // Polar angle is measured from "up": 0 = directly above, PI/2 = horizon, PI = directly below.
-    this.controls.minPolarAngle = THREE.MathUtils.degToRad(75);  // don't go too high
-    this.controls.maxPolarAngle = THREE.MathUtils.degToRad(93); // don't go too low
+    this.controls.minPolarAngle = this.DEFAULT_CONTROLS_LIMITS.minPolarAngle;
+    this.controls.maxPolarAngle = this.DEFAULT_CONTROLS_LIMITS.maxPolarAngle;
+    this.controls.minDistance = this.DEFAULT_CONTROLS_LIMITS.minDistance;
+    this.controls.maxDistance = this.DEFAULT_CONTROLS_LIMITS.maxDistance;
   }
 
   private setAutoRotateEnabled(enabled: boolean): void {
@@ -652,10 +1102,24 @@ export class Sphere implements AfterViewInit, OnDestroy {
     }
 
     // Let OrbitControls apply damping, then add bob on top so it doesn't fight controls.
-    this.controls?.update();
-    this.updateCameraHeight(dt);
-    this.updateCameraBob(now);
-    this.renderer?.render(this.scene, this.camera);
+    const routeMoving = this.updateRouteCamera(dt);
+    if (!routeMoving) {
+      // IMPORTANT:
+      // OrbitControls.update() clamps the camera to min/max polar angles, distance, etc.
+      // If a route preset sets a camera pose outside those constraints (e.g. directly above),
+      // calling update() will "snap" the camera to the nearest allowed pose.
+      //
+      // We only need OrbitControls when auto-rotate is enabled.
+      if (this.controls?.autoRotate) this.controls.update();
+      this.updateCameraHeight(dt);
+      this.updateCameraBob(now);
+    }
+    if (this.bloomEnabled) {
+      this.ensureBloomComposer();
+      this.composer?.render();
+    } else {
+      this.renderer?.render(this.scene, this.camera);
+    }
   };
 
   private onResize(): void {
@@ -671,10 +1135,14 @@ export class Sphere implements AfterViewInit, OnDestroy {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.composer?.setSize(w, h);
   }
 
   ngOnDestroy(): void {
     if (!this.isBrowser) return;
+
+    this.routeSub?.unsubscribe();
+    this.routeSub = null;
 
     window.removeEventListener('resize', this.resizeHandler);
     window.removeEventListener('pointermove', this.globalPointerMoveHandler);
@@ -685,6 +1153,19 @@ export class Sphere implements AfterViewInit, OnDestroy {
     }
 
     this.controls?.dispose();
+    this.disposeComposer();
+
+    // Dispose UFO particle resources if created.
+    if (this.ufoPoints) {
+      this.ufoPoints.geometry?.dispose?.();
+      const mat = this.ufoPoints.material as any;
+      mat?.dispose?.();
+      this.ufoPoints = null;
+    }
+    this.ufoPointsMaterial = null;
+    this.ufoPointsAllPositions = null;
+    this.ufoModel = null;
+    this.ufo = null;
 
     // Dispose renderer + remove canvas
     if (this.renderer) {

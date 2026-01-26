@@ -10,6 +10,7 @@ import { isPlatformBrowser } from '@angular/common';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TextRig } from '../three/text-rig';
+import { ROUTE_CROSSFADE_MS } from '../Services/route-transitions';
 
 @Component({
   selector: 'app-hero-scene',
@@ -43,6 +44,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
   private clock = new THREE.Clock();
   private frameId: number | null = null;
+  private destroyTimeoutId: number | null = null;
 
   private resizeHandler = () => this.onResize();
 
@@ -157,7 +159,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     const fontUrl = 'assets/fonts/helvetiker_regular.typeface.json';
 
     const titleMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x1b1b1b,
+      color: 0xffffff,
       metalness: 0.9,
       roughness: 0.12,
       clearcoat: 1.0,
@@ -190,7 +192,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.titleAnchor.add(this.titleRig.group);
 
     const subtitleMaterial = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
+      color: 0x515151,
       metalness: 0.15,
       roughness: 0.45,
     });
@@ -472,6 +474,10 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (!this.isBrowser) return;
 
+    // If a route "leave" animation is running, Angular will fade the leaving view.
+    // But if we remove the WebGL canvas immediately, it disappears instantly.
+    // So we stop work right away, and delay dispose/removal to match the route fade.
+
     window.removeEventListener('resize', this.resizeHandler);
 
     const container = this.getContainer();
@@ -488,10 +494,22 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     for (const rig of this.rigs) rig.dispose();
     this.rigs = [];
 
-    if (this.renderer) {
-      this.renderer.dispose();
-      const canvas = this.renderer.domElement;
-      canvas?.parentElement?.removeChild(canvas);
+    if (this.destroyTimeoutId !== null) {
+      window.clearTimeout(this.destroyTimeoutId);
+      this.destroyTimeoutId = null;
     }
+
+    const renderer = this.renderer;
+    const canvas = renderer?.domElement ?? null;
+    const parent = canvas?.parentElement ?? null;
+
+    this.destroyTimeoutId = window.setTimeout(() => {
+      try {
+        renderer?.dispose();
+      } finally {
+        if (canvas && parent && parent.contains(canvas)) parent.removeChild(canvas);
+      }
+      this.destroyTimeoutId = null;
+    }, ROUTE_CROSSFADE_MS);
   }
 }

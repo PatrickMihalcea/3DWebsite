@@ -39,7 +39,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       // backdrop-filter: blur(10px);
       // -webkit-backdrop-filter: blur(10px);
       // border: 1px solid rgba(0, 0, 0, 0.06);
-      // color: rgba(15, 15, 18, 0.9);
+      color: rgba(255, 255, 255, 0.9);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
 
@@ -67,21 +67,6 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       .panel__inner {
         padding: 12px;
       }
-    }
-
-    .panel__title {
-      margin-top: 10px;
-      font-weight: 800;
-      font-size: 28px;
-      line-height: 1.05;
-      letter-spacing: 0.02em;
-    }
-
-    .panel__body {
-      margin-top: 12px;
-      font-size: 14px;
-      line-height: 1.45;
-      opacity: 0.85;
     }
   `],
 })

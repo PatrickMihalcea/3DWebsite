@@ -1,4 +1,23 @@
-<app-header-ribbon></app-header-ribbon>
-<router-outlet></router-outlet>
-<app-footer-ribbon></app-footer-ribbon>
+<main class="layer-stack" [class.is-loading]="isLoading$ | async">
+  <ng-container *ngIf="(isLoading$ | async) === true">
+    <div class="loading-overlay" role="status" aria-live="polite" aria-label="Loading 3D assets">
+      <div class="loader">
+        {{ ((progress$ | async) ?? 0) | number:'1.0-0' }}%
+      </div>
+    </div>
+  </ng-container>
 
+<app-header-ribbon></app-header-ribbon>
+
+  <section class="layer layer--background" aria-hidden="true">
+    <app-sphere></app-sphere>
+  </section>
+
+  <section class="layer layer--foreground">
+    <div class="route-viewport" [@crossFadeAnimation]="prepareRoute(outlet)">
+      <router-outlet #outlet="outlet"></router-outlet>
+    </div>
+  </section>
+
+<app-footer-ribbon></app-footer-ribbon>
+</main>

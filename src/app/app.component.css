@@ -30,6 +30,12 @@
   z-index: 1;
 }
 
+.route-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .stage {
   width: 100%;
   height: 100%;
