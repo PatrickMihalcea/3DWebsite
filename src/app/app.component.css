@@ -23,17 +23,19 @@
 .layer--background {
   z-index: 0;
   /* Allow interacting with the background *through* transparent holes in the foreground */
-  pointer-events: auto;
+  pointer-events: all;
 }
 
 .layer--foreground {
   z-index: 1;
+  pointer-events: none;
 }
 
 .route-viewport {
   position: relative;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .stage {
