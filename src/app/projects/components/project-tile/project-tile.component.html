@@ -1,0 +1,16 @@
+<a class="tile" [routerLink]="['/projects', project.slug]">
+  <div class="media">
+    <img class="img img--base" [src]="project.coverImage" [alt]="project.title" loading="lazy" />
+    @if (project.hoverImage) {
+      <img class="img img--hover" [src]="project.hoverImage" [alt]="project.title" loading="lazy" />
+    }
+
+    <div class="overlay" aria-hidden="true">
+      <div class="overlay__title">{{ project.title }}</div>
+      @if (project.excerpt) {
+        <div class="overlay__excerpt">{{ project.excerpt }}</div>
+      }
+    </div>
+  </div>
+</a>
+

@@ -1,0 +1,15 @@
+<section class="section">
+  <div class="left">
+    <div class="title">{{ title }}</div>
+    <div class="description">{{ description }}</div>
+  </div>
+
+  <div class="right">
+    <div class="grid">
+      @for (p of projects; track p.slug) {
+        <app-project-tile [project]="p" />
+      }
+    </div>
+  </div>
+</section>
+

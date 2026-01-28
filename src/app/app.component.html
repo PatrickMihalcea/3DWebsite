@@ -7,17 +7,25 @@
     </div>
   </ng-container>
 
-<app-header-ribbon></app-header-ribbon>
-
   <section class="layer layer--background" aria-hidden="true">
     <app-sphere></app-sphere>
   </section>
 
   <section class="layer layer--foreground">
-    <div class="route-viewport" [@crossFadeAnimation]="prepareRoute(outlet)">
+    <div
+      class="route-viewport"
+      [class.route-viewport--scroll]="scrollMode(outlet) !== null"
+      [class.route-viewport--scroll-narrow]="scrollMode(outlet) === 'narrow'"
+      [class.route-viewport--interactive]="isInteractive(outlet)"
+      [@crossFadeAnimation]="prepareRoute(outlet)"
+    >
       <router-outlet #outlet="outlet"></router-outlet>
     </div>
   </section>
+
+  <ng-container *ngIf="!isHeaderHidden(outlet)">
+    <app-header-ribbon></app-header-ribbon>
+  </ng-container>
 
 <app-footer-ribbon></app-footer-ribbon>
 </main>

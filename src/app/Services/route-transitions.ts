@@ -1,8 +1,8 @@
-import { animate, group, query, style, transition, trigger } from "@angular/animations";
+import { animate, query, style, transition, trigger } from "@angular/animations";
 
 // Keep this export here (instead of a separate timings file) so route animation timing
 // and any dependent cleanup logic can share one source of truth.
-export const ROUTE_CROSSFADE_MS = 2050;
+export const ROUTE_CROSSFADE_MS = 2000;
 
 export const crossFadeAnimation = trigger('crossFadeAnimation', [
   transition('* => *', [
@@ -12,9 +12,9 @@ export const crossFadeAnimation = trigger('crossFadeAnimation', [
     // Ensure the leaving view is above the entering view so WebGL/canvas fades correctly.
     query(':enter', style({ opacity: 0, zIndex: 1 }), { optional: true }),
     query(':leave', style({ opacity: 1, zIndex: 2 }), { optional: true }),
-    group([
-      query(':leave', animate(`${ROUTE_CROSSFADE_MS}ms ease-in-out`, style({ opacity: 0 })), { optional: true }),
-      query(':enter', animate(`${ROUTE_CROSSFADE_MS}ms ease-in-out`, style({ opacity: 1 })), { optional: true }),
-    ]),
+    // Sequential: fade OUT the old route first, THEN fade IN the new route.
+    // (Angular runs animation steps in array order unless you wrap them in `group()`.)
+    query(':leave', animate(`${ROUTE_CROSSFADE_MS}ms ease-in-out`, style({ opacity: 0 })), { optional: true }),
+    query(':enter', animate(`${ROUTE_CROSSFADE_MS}ms ease-in-out`, style({ opacity: 1 })), { optional: true }),
   ])
 ]);

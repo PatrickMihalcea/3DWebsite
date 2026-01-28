@@ -162,7 +162,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   // Route camera tween state
   private routeCamActive = false;
   private routeCamElapsedSec = 0;
-  private routeCamDurationSec = ROUTE_CROSSFADE_MS / 1000;
+  private routeCamDurationSec = ROUTE_CROSSFADE_MS / 500;
   private routeCamFromPos = new THREE.Vector3();
   private routeCamToPos = new THREE.Vector3();
   private routeCamFromTarget = new THREE.Vector3();

@@ -32,4 +32,18 @@ export class AppComponent {
   prepareRoute(outlet: RouterOutlet): string {
     return (outlet?.activatedRouteData?.['animation'] as string | undefined) ?? 'root';
   }
+
+  scrollMode(outlet: RouterOutlet): 'viewport' | 'narrow' | null {
+    const mode = outlet?.activatedRouteData?.['scrollMode'] as 'viewport' | 'narrow' | undefined;
+    if (mode === 'viewport' || mode === 'narrow') return mode;
+    return outlet?.activatedRouteData?.['scroll'] === true ? 'viewport' : null;
+  }
+
+  isInteractive(outlet: RouterOutlet): boolean {
+    return this.scrollMode(outlet) !== null || outlet?.activatedRouteData?.['interactive'] === true;
+  }
+
+  isHeaderHidden(outlet: RouterOutlet): boolean {
+    return outlet?.activatedRouteData?.['hideHeader'] === true;
+  }
 }

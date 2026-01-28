@@ -1,0 +1,141 @@
+.page {
+  padding: 20px 0px 0px 0px;
+  font-family: Helvetiker, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+.container {
+  width: calc(100% - 60px);
+  margin: 0 auto;
+}
+
+.back {
+  display: inline;
+  opacity: 0.75;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 14px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: #fff;
+}
+
+.back:hover {
+  opacity: 1;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.left {
+  position: sticky;
+  align-self: start;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.desc {
+  margin-top: 8px;
+  opacity: 0.7;
+  line-height: 1.45rem;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.links {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.link {
+  display: inline-block;
+  padding: 10px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.right {
+  min-width: 0;
+}
+
+.gallery {
+  display: grid;
+  gap: 14px;
+}
+
+.shot {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03); */
+}
+
+.notFound {
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .left {
+    position: static;
+  }
+}
+
+/* Wide screens: keep left panel fixed; scroll only the image column */
+@media (min-width: 981px) {
+  .page {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .back {
+    align-self: flex-start; /* prevents full-width stretch + keeps hitbox tight */
+  }
+
+  .layout {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .left {
+    position: sticky;
+    top: 88px; /* align with page padding so it doesn't sit under the fixed header when enabled elsewhere */
+  }
+
+  .right {
+    height: calc(100dvh - 88px - 96px);
+    overflow-y: auto;
+    padding-right: 2px; /* avoids overlay scrollbar eating content */
+  }
+}
+
