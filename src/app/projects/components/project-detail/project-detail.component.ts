@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
@@ -8,7 +8,6 @@ import { ProjectsService } from '../../services/projects.service';
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [RouterLink],
   templateUrl: './project-detail.component.html',
   styleUrl: './project-detail.component.css'
 })

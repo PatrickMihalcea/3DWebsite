@@ -1,40 +1,36 @@
 <main class="page">
+  @if (project(); as p) {
+    <div class="layout">
 
-  <div class="container">
+      <aside class="left">
+        <button class="back" type="button" (click)="back()">Back</button>
+        <div class="title">{{ p.title }}</div>
+        <div class="desc">{{ p.description }}</div>
 
-    @if (project(); as p) {
-      <div class="layout">
-
-        <aside class="left">
-          <button class="back" type="button" (click)="back()">Back</button>
-          <div class="title">{{ p.title }}</div>
-          <div class="desc">{{ p.description }}</div>
-
-          @if (p.links?.length) {
-            <div class="links">
-              @for (link of p.links; track link.url) {
-                <a class="link" [href]="link.url" target="_blank" rel="noopener noreferrer">
-                  {{ link.label }}
-                </a>
-              }
-            </div>
-          }
-        </aside>
-
-        <section class="right">
-          <div class="gallery">
-            @for (img of (p.gallery ?? []); track img) {
-              <img class="shot" [src]="img" [alt]="p.title" loading="lazy" />
+        @if (p.links?.length) {
+          <div class="links">
+            @for (link of p.links; track link.url) {
+              <a class="link" [href]="link.url" target="_blank" rel="noopener noreferrer">
+                {{ link.label }}
+              </a>
             }
           </div>
-        </section>
-      </div>
-    } @else {
-      <div class="notFound">
-        <div class="title">Project not found</div>
-        <div class="desc">This slug doesn’t match any project in your data file yet.</div>
-      </div>
-    }
-  </div>
+        }
+      </aside>
+
+      <section class="right">
+        <div class="gallery">
+          @for (img of (p.gallery ?? []); track img) {
+            <img class="shot" [src]="img" [alt]="p.title" loading="lazy" />
+          }
+        </div>
+      </section>
+    </div>
+  } @else {
+    <div class="notFound">
+      <div class="title">Project not found</div>
+      <div class="desc">This slug doesn’t match any project in your data file yet.</div>
+    </div>
+  }
 </main>
 

@@ -1,8 +1,10 @@
+@import './assets/fonts/fonts.css';
+
 html, body {
   height: 100%;
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 0px;
   background:
     radial-gradient(900px 700px at 18% 22%, rgba(255,255,255,0.95), rgba(245,242,248,0.0) 62%),
     radial-gradient(900px 700px at 78% 68%, rgba(210,205,225,0.55), rgba(210,205,225,0.0) 65%),

@@ -48,7 +48,7 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
 }
 
 /* For routes that should only use viewport scrolling on narrow screens (e.g. project detail) */
@@ -105,14 +105,6 @@
   min-width: 0;
   min-height: 0; /* critical: allow grid items to shrink instead of overflow */
   overflow: hidden;
-}
-
-/* CSS-only fade/slide-in for hero + right panel
-   Start ONLY after loader completes (when .is-loading is removed). */
-.stage__left,
-.stage__right {
-  opacity: 0;
-  transform: translateY(10px);
 }
 
 .layer-stack:not(.is-loading) .fade-in {

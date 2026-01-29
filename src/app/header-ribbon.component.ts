@@ -8,7 +8,7 @@ import { RouterLink } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="ribbon">
-      <a class="ribbon__left" routerLink="/home">Patrick Mihalcea</a>
+      <a class="ribbon__left" routerLink="/home">Patrick<br>Mihalcea</a>
       <nav class="ribbon__right">
         <a routerLink="/projects">Projects</a>
         <!-- <a href="/contact">Contact</a> -->
@@ -23,7 +23,7 @@ import { RouterLink } from '@angular/router';
       right: 0;
       z-index: 20;
       height: 56px;
-      padding: 0 20px;
+      padding: 0 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;

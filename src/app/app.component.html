@@ -17,6 +17,8 @@
       [class.route-viewport--scroll]="scrollMode(outlet) !== null"
       [class.route-viewport--scroll-narrow]="scrollMode(outlet) === 'narrow'"
       [class.route-viewport--interactive]="isInteractive(outlet)"
+      (@crossFadeAnimation.start)="onRouteAnimStart($event)"
+      (@crossFadeAnimation.done)="onRouteAnimDone()"
       [@crossFadeAnimation]="prepareRoute(outlet)"
     >
       <router-outlet #outlet="outlet"></router-outlet>

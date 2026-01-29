@@ -4,6 +4,7 @@
   color: inherit;
   overflow: hidden;
   transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  font-family: Monospaceland;
 }
 
 .tile:hover {
@@ -58,18 +59,17 @@
 }
 
 .overlay__title {
-  font-weight: 800;
-  font-size: 1.15rem;
-  line-height: 1.35rem;
+  font-weight: 400;
+  font-size: 0.6rem;
+  line-height: 0.75rem;
   letter-spacing: 0.02em;
 }
 
 .overlay__excerpt {
-  margin-top: 6px;
+  margin-top: 3px;
   opacity: 0.8;
-  font-size: 0.95rem;
-  line-height: 1.25rem;
-  max-width: 40ch;
+  font-size: 0.6rem;
+  line-height: 0.75rem;
 }
 
 /* Hover + keyboard focus (for accessibility) */

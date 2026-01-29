@@ -26,7 +26,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       bottom: 0;
       z-index: 20;
       height: 56px;
-      padding: 0 20px;
+      padding: 0 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;

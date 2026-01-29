@@ -1,10 +1,10 @@
 .section {
-  padding: 34px 0 44px;
+  padding: 34px 0 0 0;
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 44px;
   align-items: start;
-
+  font-family: Monospaceland;
 }
 
 .left {
@@ -12,19 +12,18 @@
 }
 
 .title {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 400;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #fff;
+  color: #ffffff;
 }
 
 .description {
   margin-top: 8px;
   opacity: 0.7;
   line-height: 1.45rem;
-  font-size: 0.95rem;
-  color: #fff;
+  font-size: 0.8rem;
+  color: #ffffff;
 }
 
 .grid {

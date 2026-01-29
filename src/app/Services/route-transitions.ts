@@ -4,6 +4,8 @@ import { animate, query, style, transition, trigger } from "@angular/animations"
 // and any dependent cleanup logic can share one source of truth.
 export const ROUTE_CROSSFADE_MS = 1800;
 export const PROJECT_DETAIL_CROSSFADE_MS = 750;
+// Small gap to allow layout/scroll-gutter changes between leave and enter.
+export const ROUTE_GUTTER_SWITCH_PAUSE_MS = 40;
 
 function sequentialFade(ms: number) {
   return [
@@ -15,7 +17,8 @@ function sequentialFade(ms: number) {
     query(':leave', style({ opacity: 1, zIndex: 2 }), { optional: true }),
     // Sequential: fade OUT the old route first, THEN fade IN the new route.
     query(':leave', animate(`${ms}ms ease-in-out`, style({ opacity: 0 })), { optional: true }),
-    query(':enter', animate(`${ms}ms ease-in-out`, style({ opacity: 1 })), { optional: true }),
+    // Wait briefly before entering so the app can switch scroll-gutter/layout after leave completes.
+    query(':enter', animate(`${ms}ms ${ROUTE_GUTTER_SWITCH_PAUSE_MS}ms ease-in-out`, style({ opacity: 1 })), { optional: true }),
   ];
 }
 

@@ -40,18 +40,26 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       // -webkit-backdrop-filter: blur(10px);
       // border: 1px solid rgba(0, 0, 0, 0.06);
       color: rgba(255, 255, 255, 0.9);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      font-family: Monospaceland;
     }
 
     .panel__kicker {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 300;
       letter-spacing: 0.14em;
       // text-transform: uppercase;
       opacity: 0.75;
       -webkit-user-select: none;
       -ms-user-select: none;
       user-select: none;
+    }
+
+    /* Ensure bold tags actually render the bold font face (not a subtle "bolder" step). */
+    .panel__kicker b,
+    .panel__kicker strong {
+      font-weight: 700;
+      font-synthesis: none; /* avoid fake/synthetic bold if the face fails to load */
+      opacity: 1;
     }
 
     @media (max-width: 865px) {
