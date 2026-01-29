@@ -47,7 +47,7 @@ export const PROJECTS: Project[] = [
   {
     slug: 'AI-Social-Media-Content-Engine',
     title: 'AI Social Media Content Engine',
-    excerpt: 'Autonomous Content Engine',
+    excerpt: 'Autonomous Growth',
     coverImage: 'assets/images/AI_Image_Generator_Base.png',
     hoverImage: 'assets/images/AI_Image_Generator_Hover.png',
     description:

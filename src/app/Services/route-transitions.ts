@@ -2,8 +2,8 @@ import { animate, query, style, transition, trigger } from "@angular/animations"
 
 // Keep this export here (instead of a separate timings file) so route animation timing
 // and any dependent cleanup logic can share one source of truth.
-export const ROUTE_CROSSFADE_MS = 1800;
-export const PROJECT_DETAIL_CROSSFADE_MS = 750;
+export const ROUTE_CROSSFADE_MS = 750;
+export const PROJECT_DETAIL_CROSSFADE_MS = 500;
 // Small gap to allow layout/scroll-gutter changes between leave and enter.
 export const ROUTE_GUTTER_SWITCH_PAUSE_MS = 40;
 

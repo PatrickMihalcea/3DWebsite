@@ -349,9 +349,6 @@ export class Sphere implements AfterViewInit, OnDestroy {
     const toTarget = new THREE.Vector3(preset.target[0], preset.target[1], preset.target[2]);
     const toFrameShiftX = preset.frameShiftX ?? 0;
 
-    // Keep duration in sync in case you edit ROUTE_CROSSFADE_MS at runtime.
-    this.routeCamDurationSec = Math.max(0.05, ROUTE_CROSSFADE_MS / 1000);
-
     if (immediate) {
       this.camera.position.copy(toPos);
       if (this.controls) this.controls.target.copy(toTarget);
