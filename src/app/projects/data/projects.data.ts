@@ -43,6 +43,21 @@ export const PROJECTS: Project[] = [
       svgPlaceholderDataUrl('Example Project — Image 2'),
       svgPlaceholderDataUrl('Example Project — Image 3')
     ]
+  },
+  {
+    slug: 'AI-Social-Media-Content-Engine',
+    title: 'AI Social Media Content Engine',
+    excerpt: 'Autonomous Content Engine',
+    coverImage: 'assets/images/AI_Image_Generator_Base.png',
+    hoverImage: 'assets/images/AI_Image_Generator_Hover.png',
+    description:
+      'Built a Python-based automation system to generate and publish large-scale AI visual content across social platforms while optimizing costs through browser-based automation.',
+    gallery: [
+      'assets/images/AI_Image_Generator_Base.png',
+      'assets/images/AI_Image_Generator_Hover.png',
+      'assets/images/AI_Image_Generator_Gallery2.png',
+      'assets/images/AI_Image_Generator_Gallery.png',
+    ]
   }
 ];
 
