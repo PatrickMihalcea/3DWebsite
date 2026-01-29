@@ -11,7 +11,7 @@ export const PROJECT_SECTIONS: ProjectSection[] = [
     id: 'recent',
     title: 'Recent',
     description: 'Latest work and experiments as they ship.',
-    projectSlugs: ['example-project','example-project']
+    projectSlugs: ['example-project','example-project', 'example-project','example-project']
   },
   {
     id: 'threejs',

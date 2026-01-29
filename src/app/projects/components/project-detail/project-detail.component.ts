@@ -47,10 +47,19 @@ export class ProjectDetailComponent implements AfterViewInit, OnDestroy {
     // When switching from narrow (viewport scroll) -> wide (image-column scroll),
     // reset the outer scroll container so the left panel/back button isn't stuck off-screen.
     if (isWide && !this.lastIsWide) {
-      const viewport = document.querySelector('.route-viewport') as HTMLElement | null;
-      viewport?.scrollTo({ top: 0, left: 0 });
+      this.scrollAllToTop();
     }
     this.lastIsWide = isWide;
+  }
+
+  private scrollAllToTop(): void {
+    // Outer route scroll container (used on narrow detail and on Projects list).
+    const viewport = document.querySelector('.route-viewport') as HTMLElement | null;
+    viewport?.scrollTo({ top: 0, left: 0 });
+
+    // Inner image column scroller (used on wide detail).
+    const right = document.querySelector('.right') as HTMLElement | null;
+    right?.scrollTo({ top: 0, left: 0 });
   }
 }
 

@@ -1,5 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { AnimationEvent } from '@angular/animations';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';
 import { ActivatedRoute, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HeaderRibbonComponent } from './header-ribbon.component';
@@ -27,6 +29,7 @@ export class AppComponent {
   private fromScrollMode: 'viewport' | 'narrow' | null = null;
   private toScrollMode: 'viewport' | 'narrow' | null = null;
   private switchTimer: number | null = null;
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   constructor(
     private loadingService: LoadingManagerService) {
@@ -67,7 +70,18 @@ export class AppComponent {
     // Switch scroll mode/gutter *after* leave finishes and *before* enter begins.
     if (this.switchTimer !== null) window.clearTimeout(this.switchTimer);
     this.switchTimer = window.setTimeout(() => {
+      // This moment aligns with the "pause" between leave and enter (see ROUTE_GUTTER_SWITCH_PAUSE_MS).
+      // Safe place to change scroll gutters AND do any scroll resets without visible jumping.
       this.scrollSwitched = true;
+
+      // If we're entering project detail from a scrolled Projects list, reset scroll to top
+      // during the pause window so the Back button is visible and no jump is seen.
+      if (this.isBrowser && ev.toState === 'project-detail') {
+        const viewport = document.querySelector('.route-viewport') as HTMLElement | null;
+        viewport?.scrollTo({ top: 0, left: 0 });
+        const right = document.querySelector('.right') as HTMLElement | null;
+        right?.scrollTo({ top: 0, left: 0 });
+      }
     }, leaveMs);
   }
 
