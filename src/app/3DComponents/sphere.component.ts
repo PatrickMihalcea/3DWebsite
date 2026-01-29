@@ -74,7 +74,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
   /**
    * Route-driven camera presets.
    *
-   * These keys correspond to the `data: { animation: '...' }` values in `app.routes.ts`.
+   * These keys correspond to `data: { spherePreset: '...' }` (preferred) or fall back to
+   * `data: { animation: '...' }` values in `app.routes.ts`.
    * Tweak these numbers to taste.
    */
   private readonly routeCameraPresets: Record<
@@ -170,6 +171,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private routeCamAutoRotateAfter = true;
   private routeCamFromFrameShiftX = 0;
   private routeCamToFrameShiftX = 0;
+  private lastRouteKey: string | null = null;
 
   /**
    * Flight animation is driven by checkpoints.
@@ -190,6 +192,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private ufoParticleParamsDesired: Partial<{ opacity: number; size: number; color: number; density: number }> = {};
   private ufoPointsMaterial: THREE.PointsMaterial | null = null;
   private ufoPointsAllPositions: Float32Array | null = null; // cached full vertex list (xyzxyz...)
+  private ufoParticleStrideApplied: number | null = null;
   private flightStartTime: number | null = null;
 
   // Cow spawner (multiple cows)
@@ -311,22 +314,33 @@ export class Sphere implements AfterViewInit, OnDestroy {
 
   private setupRouteCamera(): void {
     // Apply initial route preset (no animation).
-    this.applyRouteCameraPreset(this.getActiveRouteAnimationKey(), true);
+    this.lastRouteKey = this.getActiveRoutePresetKey();
+    this.applyRouteCameraPreset(this.lastRouteKey, true);
 
     // Then animate on subsequent navigations.
     this.routeSub?.unsubscribe();
     this.routeSub = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe(() => {
-        this.applyRouteCameraPreset(this.getActiveRouteAnimationKey(), false);
+        const key = this.getActiveRoutePresetKey();
+        // Important perf guard: navigating within the same "background preset"
+        // (e.g. `/projects` -> `/projects/:slug`) shouldn't trigger heavy route work.
+        if (key === this.lastRouteKey) return;
+        this.lastRouteKey = key;
+        this.applyRouteCameraPreset(key, false);
       });
   }
 
-  private getActiveRouteAnimationKey(): string {
-    // Walk to the deepest primary route and read its `data.animation` key.
+  private getActiveRoutePresetKey(): string {
+    // Walk to the deepest primary route and read its `data.spherePreset` key.
+    // Fall back to `data.animation` for backwards compatibility.
     let r = this.router.routerState.snapshot.root;
     while (r.firstChild) r = r.firstChild;
-    return (r.data?.['animation'] as string | undefined) ?? 'home';
+    return (
+      (r.data?.['spherePreset'] as string | undefined) ??
+      (r.data?.['animation'] as string | undefined) ??
+      'home'
+    );
   }
 
   private applyRouteCameraPreset(key: string, immediate: boolean): void {
@@ -432,8 +446,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
       if (typeof this.ufoParticleParamsDesired.color === 'number') this.ufoPointsMaterial.color.setHex(this.ufoParticleParamsDesired.color);
       this.ufoPointsMaterial.needsUpdate = true;
     }
-    // Apply density changes immediately if points already exist.
-    if (this.ufoPoints && this.ufoPointsAllPositions) {
+    // Density rebuilding can be expensive; only rebuild when particles are actually desired.
+    if (this.ufoParticlesDesired && this.ufoPoints && this.ufoPointsAllPositions) {
       this.applyUfoParticleDensity(this.ufoParticleParamsDesired.density ?? 0.5);
     }
     this.updateUfoRenderMode();
@@ -675,6 +689,9 @@ export class Sphere implements AfterViewInit, OnDestroy {
     // Map density [0..1] -> stride [MAX_STRIDE..1]
     const MAX_STRIDE = 20;
     const stride = Math.max(1, Math.round(THREE.MathUtils.lerp(MAX_STRIDE, 1, d)));
+    // Avoid rebuilding buffers if nothing would change (prevents a main-thread hitch on navigation).
+    if (this.ufoParticleStrideApplied === stride) return;
+    this.ufoParticleStrideApplied = stride;
 
     const src = this.ufoPointsAllPositions;
     const out: number[] = [];

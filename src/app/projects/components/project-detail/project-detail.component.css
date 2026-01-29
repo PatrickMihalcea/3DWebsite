@@ -13,7 +13,7 @@
   opacity: 0.75;
   text-decoration: none;
   color: inherit;
-  margin-bottom: 14px;
+  margin-bottom: 30px;
   background: transparent;
   border: 0;
   padding: 0;
@@ -129,11 +129,10 @@
 
   .left {
     position: sticky;
-    top: 88px; /* align with page padding so it doesn't sit under the fixed header when enabled elsewhere */
   }
 
   .right {
-    height: calc(100dvh - 88px - 96px);
+    height: calc(100dvh - 88px);
     overflow-y: auto;
     padding-right: 2px; /* avoids overlay scrollbar eating content */
   }

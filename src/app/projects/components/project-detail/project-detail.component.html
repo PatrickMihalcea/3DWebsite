@@ -1,12 +1,12 @@
 <main class="page">
 
   <div class="container">
-    <button class="back" type="button" (click)="back()">Back</button>
+
     @if (project(); as p) {
       <div class="layout">
 
         <aside class="left">
-
+          <button class="back" type="button" (click)="back()">Back</button>
           <div class="title">{{ p.title }}</div>
           <div class="desc">{{ p.description }}</div>
 

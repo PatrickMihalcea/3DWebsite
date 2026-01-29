@@ -4,7 +4,7 @@
   grid-template-columns: 1fr 2fr;
   gap: 44px;
   align-items: start;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
 }
 
 .left {
@@ -31,6 +31,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  border-top: 0.5px solid rgba(102, 186, 255, 0.5);
+  padding-top: 18px;
 }
 
 @media (max-width: 980px) {
