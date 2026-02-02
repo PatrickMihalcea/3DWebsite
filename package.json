@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "npx kill-port 4200 && ng serve --host 0.0.0.0 --port 4200",
-    "build": "ng build",
+    "build": "ng build && node ./cloudflare-postbuild.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr": "node dist/3dwebsite/server/server.mjs",

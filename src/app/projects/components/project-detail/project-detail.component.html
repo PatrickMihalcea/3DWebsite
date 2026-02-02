@@ -6,8 +6,16 @@
         <button class="back" type="button" (click)="back()">Back</button>
         <div class="title">{{ p.title }}</div>
         <div class="desc">{{ p.description }}</div>
-
+        @if (p.techStack?.length) {
+          <div class="title">Tech Stack</div>
+          <div class="techStack">
+            @for (tech of p.techStack; track tech) {
+              <span class="tech">{{ tech }}</span>
+            }
+          </div>
+        }
         @if (p.links?.length) {
+          <div class="title">Links</div>
           <div class="links">
             @for (link of p.links; track link.url) {
               <a class="link" [href]="link.url" target="_blank" rel="noopener noreferrer">

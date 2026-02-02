@@ -50,14 +50,46 @@ export const PROJECTS: Project[] = [
     excerpt: 'Autonomous Growth',
     coverImage: 'assets/images/AI_Image_Generator_Base.png',
     hoverImage: 'assets/images/AI_Image_Generator_Hover.png',
-    description:
-      'Built a Python-based automation system to generate and publish large-scale AI visual content across social platforms while optimizing costs through browser-based automation.',
+    description: `This Python-based automation system generates and publishes AI visual content across social platforms, while optimizing costs through browser-based automation with Selelium.
+
+      Given a list of keywords to define a content page, the system will generate image prompts, generate videos or images, and automatically publish them to all social platforms.
+    `,
+    techStack: [
+      'Python',
+      'OpenAI API',
+      'Google Drive API',
+      'Selenium',
+      'ChromeDriver',
+      'Chrome DevTools',
+    ],
     gallery: [
       'assets/images/AI_Image_Generator_Base.png',
       'assets/images/AI_Image_Generator_Hover.png',
       'assets/images/AI_Image_Generator_Gallery2.png',
       'assets/images/AI_Image_Generator_Gallery.png',
     ]
-  }
+  },
+  {
+    slug: 'AI-Knowledge-Base-Query-Tool',
+    title: 'AI Knowledge Base Query Tool',
+    excerpt: 'Search & Retrieve',
+    coverImage: 'assets/images/Knowledgebase_Base.png',
+    hoverImage: 'assets/images/Knowledgebase_Hover.png',
+    description: `This retrieval-augmented intelligence system transforms enterprise documents into queryable knowledge. Users can upload PDFs and receive context-aware answers grounded directly in the source material.
+
+  To work, I custom built a vector-based embedding pipeline to semantically index documents, paired with automatically generating relevant meta data and questions to quicken search and retrieval.
+    `,
+    techStack: [
+      'TypeScript',
+      'Angular',
+      'NestJS',
+      'OpenAI / Embeddings',
+      'Vector Databases',
+    ],
+    gallery: [
+      'assets/images/Knowledgebase_Base.png',
+      'assets/images/Knowledgebase_Hover.png',
+    ]
+  },
 ];
 

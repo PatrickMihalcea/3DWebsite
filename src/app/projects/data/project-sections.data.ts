@@ -2,22 +2,22 @@ import { ProjectSection } from '../models/project.model';
 
 export const PROJECT_SECTIONS: ProjectSection[] = [
   {
-    id: 'featured',
-    title: 'Featured',
-    description: 'A few highlight projects — curated and kept up to date.',
-    projectSlugs: ['AI-Social-Media-Content-Engine']
+    id: 'personal',
+    title: 'Personal',
+    description: 'A few highlight projects that I built for myself.',
+    projectSlugs: ['AI-Social-Media-Content-Engine', ]
   },
   {
-    id: 'recent',
-    title: 'Recent',
-    description: 'Latest work and experiments as they ship.',
-    projectSlugs: ['example-project','example-project', 'example-project','example-project']
+    id: 'work',
+    title: 'Work Projects',
+    description: 'Latest work for clients.',
+    projectSlugs: ['AI-Knowledge-Base-Query-Tool',]
   },
-  {
-    id: 'threejs',
-    title: 'ThreeJS explorations',
-    description: 'Interactive 3D experiments and visual prototypes.',
-    projectSlugs: ['example-project']
-  }
+  // {
+  //   id: 'experiments',
+  //   title: 'ThreeJS explorations',
+  //   description: 'Interactive 3D experiments and visual prototypes.',
+  //   projectSlugs: ['example-project']
+  // }
 ];
 

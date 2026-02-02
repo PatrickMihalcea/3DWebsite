@@ -68,6 +68,9 @@ export class AppComponent {
 
     const leaveMs = this.transitionMsFor(ev.fromState, ev.toState);
     // Switch scroll mode/gutter *after* leave finishes and *before* enter begins.
+    // During SSR/prerender there is no `window`, but Angular still runs animation hooks.
+    if (!this.isBrowser) return;
+
     if (this.switchTimer !== null) window.clearTimeout(this.switchTimer);
     this.switchTimer = window.setTimeout(() => {
       // This moment aligns with the "pause" between leave and enter (see ROUTE_GUTTER_SWITCH_PAUSE_MS).
@@ -76,7 +79,7 @@ export class AppComponent {
 
       // If we're entering project detail from a scrolled Projects list, reset scroll to top
       // during the pause window so the Back button is visible and no jump is seen.
-      if (this.isBrowser && ev.toState === 'project-detail') {
+      if (ev.toState === 'project-detail') {
         const viewport = document.querySelector('.route-viewport') as HTMLElement | null;
         viewport?.scrollTo({ top: 0, left: 0 });
         const right = document.querySelector('.right') as HTMLElement | null;
@@ -88,6 +91,7 @@ export class AppComponent {
   onRouteAnimDone(): void {
     this.transitioning = false;
     this.scrollSwitched = true;
+    if (!this.isBrowser) return;
     if (this.switchTimer !== null) window.clearTimeout(this.switchTimer);
     this.switchTimer = null;
   }

@@ -1,4 +1,4 @@
-export type ProjectSectionId = 'featured' | 'recent' | 'threejs';
+export type ProjectSectionId = 'personal' | 'work' | 'experiments';
 
 export interface ProjectLink {
   label: string;
@@ -12,6 +12,7 @@ export interface Project {
   coverImage: string;
   hoverImage?: string;
   description: string;
+  techStack?: string[];
   links?: ProjectLink[];
   gallery?: string[];
 }
