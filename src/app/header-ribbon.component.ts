@@ -1,16 +1,23 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-header-ribbon',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="ribbon">
       <a class="ribbon__left" routerLink="/home">Patrick<br>Mihalcea</a>
       <nav class="ribbon__right">
-        <a routerLink="/projects">Projects</a>
+        <a
+          routerLink="/projects"
+          routerLinkActive="is-active"
+          #projectsRla="routerLinkActive"
+          [attr.aria-current]="projectsRla.isActive ? 'page' : null"
+        >
+          Projects
+        </a>
         <!-- <a href="/contact">Contact</a> -->
       </nav>
     </header>
@@ -68,6 +75,14 @@ import { RouterLink } from '@angular/router';
 
     .ribbon__right a:hover {
       opacity: 1;
+    }
+
+    .ribbon__right a.is-active {
+      opacity: 1;
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 6px;
+      text-decoration-color: rgba(255, 255, 255, 0.45);
     }
   `],
 })
