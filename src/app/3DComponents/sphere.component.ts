@@ -226,7 +226,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   private readonly animateUfo = true;
   private cowRiseDurationSec = 35.0;
   private cowStartPos = new THREE.Vector3(0, -6, -1);
-  private cowEndPos = new THREE.Vector3(0, 1, -0.55); // tweak to place under UFO
+  private cowEndPos = new THREE.Vector3(0, 2, -0.55); // tweak to place under UFO
 
   // Gentle camera bob (adds a small reversible offset so it doesn't drift)
   private cameraBobEnabled = true;

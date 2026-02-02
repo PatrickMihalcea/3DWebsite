@@ -3,15 +3,15 @@ import { ProjectSection } from '../models/project.model';
 export const PROJECT_SECTIONS: ProjectSection[] = [
   {
     id: 'personal',
-    title: 'Personal',
+    title: 'Personal Builds',
     description: 'A few highlight projects that I built for myself.',
     projectSlugs: ['AI-Social-Media-Content-Engine', ]
   },
   {
     id: 'work',
-    title: 'Work Projects',
+    title: 'Client Work',
     description: 'Latest work for clients.',
-    projectSlugs: ['AI-Knowledge-Base-Query-Tool',]
+    projectSlugs: ['AI-Knowledge-Base-Query-Tool','AWS-Hosted-AI-App-Store-Review-Platform']
   },
   // {
   //   id: 'experiments',

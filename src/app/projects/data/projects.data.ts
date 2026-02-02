@@ -82,13 +82,42 @@ export const PROJECTS: Project[] = [
     techStack: [
       'TypeScript',
       'Angular',
-      'NestJS',
+      'Node.js',
       'OpenAI / Embeddings',
       'Vector Databases',
     ],
     gallery: [
       'assets/images/Knowledgebase_Base.png',
       'assets/images/Knowledgebase_Hover.png',
+    ]
+  },
+  {
+    slug: 'AWS-Hosted-AI-App-Store-Review-Platform',
+    title: 'App Store Review Platform',
+    excerpt: 'AI Augmentation',
+    coverImage: 'assets/images/Review_Platform_Base.png',
+    hoverImage: 'assets/images/Review_Platform_Hover.png',
+    description: `Designed and deployed an AWS hosted, AI platform to ingest, analyze, and respond to customer reviews across both the Apple App Store and Google Play Store for a Tier-1 banking client.
+
+  The system continuously retrieves user reviews, categorizes feedback, and performs sentiment analysis to surface trends and insights for internal stakeholders. Leveraging AWS Bedrock, the platform generates context-aware, brand-aligned response drafts that can be reviewed and published directly to app store listings, significantly reducing manual effort.
+
+  Includes an internal dashboard for employees to review individual feedback, monitor sentiment distribution, and analyze review volume and themes at scale.
+    `,
+    techStack: [
+      'Angular',
+      'TypeScript',
+      'Node.js',
+      'AWS Fargate',
+      'AWS Lambda',
+      'AWS Bedrock',
+      'Application Load Balancers',
+      'Virtual Private Cloud (VPC)',
+      'Azure Active Directory Authentication',
+      'Apple App Store & Google Play APIs',
+    ],
+    gallery: [
+      'assets/images/Review_Platform_Base.png',
+      'assets/images/Review_Platform_Hover.png',
     ]
   },
 ];
