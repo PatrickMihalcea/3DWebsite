@@ -17,6 +17,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { LoadingManagerService } from '../Services/loading-manager.service';
 import { ROUTE_CROSSFADE_MS } from '../Services/route-transitions';
+import { IntroGateService } from '../Services/intro-gate.service';
 import { Subscription, filter } from 'rxjs';
 
 type AccelerationMode = 'up' | 'down' | 'linear' | 'arc';
@@ -273,6 +274,7 @@ export class Sphere implements AfterViewInit, OnDestroy {
   constructor(
     private elRef: ElementRef,
     private loadingService: LoadingManagerService,
+    private introGate: IntroGateService,
     private router: Router,
     @Inject(PLATFORM_ID) platformId: Object
   ) {
@@ -598,7 +600,17 @@ export class Sphere implements AfterViewInit, OnDestroy {
         // Initialize pose to first checkpoint and start the flight.
         this.applyCheckpointPose(wrapper, this.checkpoints[0]);
         this.flightStartTime = this.animateUfo ? this.clock.elapsedTime : null;
-        if (this.flightStartTime !== null) this.setAutoRotateEnabled(false);
+        if (this.flightStartTime !== null) {
+          this.setAutoRotateEnabled(false);
+
+          // Gate the UI until the UFO intro flight completes (one-time per full reload).
+          const last = this.checkpoints[this.checkpoints.length - 1];
+          const durationMs = Math.max(0, (last?.time ?? 0) * 1000);
+          this.introGate.start(durationMs);
+        } else {
+          // If intro is disabled, don't keep UI hidden.
+          this.introGate.finish();
+        }
 
         this.scene.add(wrapper);
       },
@@ -1052,6 +1064,8 @@ export class Sphere implements AfterViewInit, OnDestroy {
       if (!active) {
         this.flightStartTime = null;
         this.setAutoRotateEnabled(true);
+        // Ensure the UI gate opens even if timings drift.
+        this.introGate.finish();
       }
     }
 

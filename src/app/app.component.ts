@@ -8,6 +8,7 @@ import { HeaderRibbonComponent } from './header-ribbon.component';
 import { FooterRibbonComponent } from './footer-ribbon.component';
 import { Sphere } from './3DComponents/sphere.component';
 import { LoadingManagerService } from './Services/loading-manager.service';
+import { IntroGateService } from './Services/intro-gate.service';
 import { Observable } from 'rxjs';
 import { crossFadeAnimation, PROJECT_DETAIL_CROSSFADE_MS, ROUTE_CROSSFADE_MS, ROUTE_GUTTER_SWITCH_PAUSE_MS } from './Services/route-transitions';
 
@@ -24,6 +25,7 @@ export class AppComponent {
   // Loading manager
   isLoading$: Observable<boolean>;
   progress$: Observable<number>;
+  introReady$: Observable<boolean>;
   transitioning = false;
   private scrollSwitched = true;
   private fromScrollMode: 'viewport' | 'narrow' | null = null;
@@ -32,9 +34,11 @@ export class AppComponent {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   constructor(
-    private loadingService: LoadingManagerService) {
+    private loadingService: LoadingManagerService,
+    private introGate: IntroGateService) {
       this.isLoading$ = this.loadingService.isLoading$;
       this.progress$ = this.loadingService.progress$;
+      this.introReady$ = this.introGate.ready$;
     }
   route = inject(ActivatedRoute);
 

@@ -1,4 +1,8 @@
-<main class="layer-stack" [class.is-loading]="isLoading$ | async">
+<main
+  class="layer-stack"
+  [class.is-loading]="isLoading$ | async"
+  [class.intro-hidden]="(introReady$ | async) === false"
+>
   <ng-container *ngIf="(isLoading$ | async) === true">
     <div class="loading-overlay" role="status" aria-live="polite" aria-label="Loading 3D assets">
       <div class="loader">
