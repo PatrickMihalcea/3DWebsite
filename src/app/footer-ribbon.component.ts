@@ -72,10 +72,16 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     @media (max-width: 768px) {
       .footer {
         height: 52px;
-        padding: 0 14px;
-        font-size: 11px;
+        padding: 0 20px;
+        font-size: 10px;
       }
       .footer__right { gap: 14px; }
+    }
+
+    @media (max-height: 345px) {
+      .footer {
+        height: 30px;
+      }
     }
   `],
 })

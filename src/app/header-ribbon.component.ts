@@ -84,6 +84,21 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       text-underline-offset: 6px;
       text-decoration-color: rgba(255, 255, 255, 0.45);
     }
+
+    @media (max-width: 768px) {
+      .ribbon {
+        height: 52px;
+        padding: 0 20px;
+        font-size: 10px;
+      }
+      .ribbon__right { gap: 14px; }
+    }
+
+    @media (max-height: 345px) {
+      .ribbon {
+        height: 30px;
+      }
+    }
   `],
 })
 export class HeaderRibbonComponent {}
