@@ -2,7 +2,7 @@
   // Cloudflare Workers Static Assets config.
   // Cloudflare's deploy stage runs `wrangler deploy`, which needs to know what directory
   // contains your built frontend assets.
-  "name": "3dwebsite",
+  "name": "portfolio",
   "compatibility_date": "2026-02-02",
   "assets": {
     // Angular (application builder w/ SSR + prerender) outputs browser assets here.
