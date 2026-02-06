@@ -11,6 +11,14 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       <a class="ribbon__left" routerLink="/home">Patrick<br>Mihalcea</a>
       <nav class="ribbon__right">
         <a
+          routerLink="/home"
+          routerLinkActive="is-active"
+          #homeRla="routerLinkActive"
+          [attr.aria-current]="homeRla.isActive ? 'page' : null"
+        >
+          Home
+        </a>
+        <a
           routerLink="/projects"
           routerLinkActive="is-active"
           #projectsRla="routerLinkActive"
