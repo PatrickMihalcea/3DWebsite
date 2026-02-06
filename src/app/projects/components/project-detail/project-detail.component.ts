@@ -27,6 +27,11 @@ export class ProjectDetailComponent implements AfterViewInit, OnDestroy {
 
   readonly project = computed(() => this.projectsService.getProject(this.slug()));
 
+  isMp4(src: string): boolean {
+    // Accept querystrings/hashes (e.g. foo.mp4?v=1) just in case.
+    return /\.mp4(?:[?#].*)?$/i.test(src);
+  }
+
   back(): void {
     this.location.back();
   }

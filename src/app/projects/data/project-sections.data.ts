@@ -5,7 +5,7 @@ export const PROJECT_SECTIONS: ProjectSection[] = [
     id: 'personal',
     title: 'Personal Builds',
     description: 'A few highlight projects that I built for myself.',
-    projectSlugs: ['AI-Social-Media-Content-Engine', ]
+    projectSlugs: ['AI-Social-Media-Content-Engine', 'Machine-Learning-Traffic-System']
   },
   {
     id: 'work',

@@ -88,6 +88,8 @@
 }
 
 .gallery {
+  align-items: center;
+  justify-items: center;
   display: grid;
   gap: 14px;
 }
@@ -99,6 +101,14 @@
   /* border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03); */
+}
+
+video.shot {
+  /* Keep the video's intrinsic dimensions (original height),
+     but don't let it overflow the column on smaller screens. */
+  width: auto;
+  height: auto;
+  max-width: 100%;
 }
 
 .notFound {

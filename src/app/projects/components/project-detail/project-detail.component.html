@@ -28,8 +28,14 @@
 
       <section class="right">
         <div class="gallery">
-          @for (img of (p.gallery ?? []); track img) {
-            <img class="shot" [src]="img" [alt]="p.title" loading="lazy" />
+          @for (item of (p.gallery ?? []); track item) {
+            @if (isMp4(item)) {
+              <video class="shot" [attr.aria-label]="p.title" controls preload="metadata" playsinline>
+                <source [src]="item" type="video/mp4" />
+              </video>
+            } @else {
+              <img class="shot" [src]="item" [alt]="p.title" loading="lazy" />
+            }
           }
         </div>
       </section>

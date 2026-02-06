@@ -62,7 +62,11 @@ export const PROJECTS: Project[] = [
       'ChromeDriver',
       'Chrome DevTools',
     ],
+    links: [
+      { label: 'Code', url: 'https://github.com/PatrickMihalcea/SocialMediaAutomation' },
+    ],
     gallery: [
+      'assets/images/AI House.mp4',
       'assets/images/AI_Image_Generator_Base.png',
       'assets/images/AI_Image_Generator_Hover.png',
       'assets/images/AI_Image_Generator_Gallery2.png',
@@ -118,6 +122,35 @@ export const PROJECTS: Project[] = [
     gallery: [
       'assets/images/Review_Platform_Base.png',
       'assets/images/Review_Platform_Hover.png',
+    ]
+  },
+  {
+    slug: 'Machine-Learning-Traffic-System',
+    title: 'Machine Learning Traffic System',
+    excerpt: 'Thesis Project',
+    coverImage: 'assets/images/Intersection.png',
+    hoverImage: 'assets/images/IntersectionSensors.png',
+    description: `Designed Unity simulation and used TensorFlow to convert car proximity and sensor inputs into steering and speed outputs using Post Proximal Optimization (PPO) algorithm.
+
+  Replaced traffic lights with an ML system achieving 3.6× throughput and 90% less stop time.
+    `,
+    techStack: [
+      'Unity',
+      'TensorFlow',
+      'C#',
+      'Post Proximal Optimization (PPO)',
+      'Machine Learning Agents',
+    ],
+    links: [
+      { label: 'Reports', url: 'https://github.com/PatrickMihalcea/MachineLearningThesis' },
+    ],
+    gallery: [
+      'assets/images/ThesisPresentationTitleSlide.png',
+      'assets/images/ThesisPresentationSlide2.png',
+      'assets/images/ThesisPresentationSlide11.png',
+      'assets/images/IntersectionSensors.png',
+      'assets/images/CarSensors.png',
+
     ]
   },
 ];
