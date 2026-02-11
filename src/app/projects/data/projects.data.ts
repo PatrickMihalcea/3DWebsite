@@ -53,6 +53,10 @@ export const PROJECTS: Project[] = [
     description: `This Python-based automation system generates and publishes AI visual content across social platforms, while optimizing costs through browser-based automation with Selelium.
 
       Given a list of keywords to define a content page, the system will generate image prompts, generate videos or images, and automatically publish them to all social platforms.
+
+      It was a ton of fun to wake up every morning to see what the AI had generated and published overnight with some posts garnering thousands of views and likes such as the feautured video.
+
+      With this proof of concept a success, it is no longer in use as I work on developing this project into a commercial product.
     `,
     techStack: [
       'Python',
@@ -79,9 +83,9 @@ export const PROJECTS: Project[] = [
     excerpt: 'Search & Retrieve',
     coverImage: 'assets/images/Knowledgebase_Base.png',
     hoverImage: 'assets/images/Knowledgebase_Hover.png',
-    description: `This retrieval-augmented intelligence system transforms enterprise documents into queryable knowledge. Users can upload PDFs and receive context-aware answers grounded directly in the source material.
+    description: `This retrieval-augmented intelligence system transforms enterprise documents into queryable knowledge. The client, a Tier-1 banking institution, loads PDFs and receive context-aware answers grounded directly in the source material.
 
-  To work, I custom built a vector-based embedding pipeline to semantically index documents, paired with automatically generating relevant meta data and questions to quicken search and retrieval.
+  To work, our team custom built a vector-based embedding pipeline to semantically index documents, paired with automatically generating relevant meta data and questions to quicken search and retrieval.
     `,
     techStack: [
       'TypeScript',
@@ -101,7 +105,7 @@ export const PROJECTS: Project[] = [
     excerpt: 'AI Augmentation',
     coverImage: 'assets/images/Review_Platform_Base.png',
     hoverImage: 'assets/images/Review_Platform_Hover.png',
-    description: `Designed and deployed an AWS hosted, AI platform to ingest, analyze, and respond to customer reviews across both the Apple App Store and Google Play Store for a Tier-1 banking client.
+    description: `In collaboration with client cloud architects, we designed and deployed an AWS hosted, AI platform to ingest, analyze, and respond to customer reviews across the Apple App Store and Google Play Store for a Tier-1 banking client.
 
   The system continuously retrieves user reviews, categorizes feedback, and performs sentiment analysis to surface trends and insights for internal stakeholders. Leveraging AWS Bedrock, the platform generates context-aware, brand-aligned response drafts that can be reviewed and published directly to app store listings, significantly reducing manual effort.
 
@@ -114,6 +118,8 @@ export const PROJECTS: Project[] = [
       'AWS Fargate',
       'AWS Lambda',
       'AWS Bedrock',
+      'EventBridge',
+      'S3',
       'Application Load Balancers',
       'Virtual Private Cloud (VPC)',
       'Azure Active Directory Authentication',
@@ -130,9 +136,17 @@ export const PROJECTS: Project[] = [
     excerpt: 'Thesis Project',
     coverImage: 'assets/images/Intersection.png',
     hoverImage: 'assets/images/IntersectionSensors.png',
-    description: `Designed Unity simulation and used TensorFlow to convert car proximity and sensor inputs into steering and speed outputs using Post Proximal Optimization (PPO) algorithm.
+    description: `The idea was simple: in the far future, can self-driving cars be unified into a single fleet? And if so, can traffic lights become obsolete?
 
-  Replaced traffic lights with an ML system achieving 3.6× throughput and 90% less stop time.
+    For my undergraduate thesis, I designed a Unity simulation and used TensorFlow to convert car proximity and sensor inputs into steering and speed outputs using Post Proximal Optimization (PPO).
+
+    Layered on top of the simulation, I implemented a "Master AI" that could control the entire fleet of cars, making decisions based on the current traffic situation.
+
+    I then compared the performance of the cars alone vs. with the Master AI vs. with a traffic light system vs. combining Master AI with traffic lights.
+
+    The results? The Master AI was able to achieve 3.6x throughput and 90% less stop time compared to the traffic light system making it the clear winner and demonstrating the potential of ML-based traffic control.
+
+    My thesis was globally recognized by the Global Undergraduate Awards winning the Thomas Clarkson Bronze Medal in Computer Science.
     `,
     techStack: [
       'Unity',
@@ -142,9 +156,11 @@ export const PROJECTS: Project[] = [
       'Machine Learning Agents',
     ],
     links: [
-      { label: 'Reports', url: 'https://github.com/PatrickMihalcea/MachineLearningThesis' },
+      { label: 'Report', url: 'https://drive.google.com/file/d/16R20QaSgbU64xqaQyiQ4l1Dze7kAHqGw/view?usp=sharing' },
+      { label: 'Presentation', url: 'https://docs.google.com/presentation/d/1bEtmEk9Q6Xy9qPy_o7LtMInBb8oE7PMQ/present' },
     ],
     gallery: [
+      'assets/images/Master AI.mp4',
       'assets/images/ThesisPresentationTitleSlide.png',
       'assets/images/ThesisPresentationSlide2.png',
       'assets/images/ThesisPresentationSlide11.png',

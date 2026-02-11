@@ -4,13 +4,13 @@ export const PROJECT_SECTIONS: ProjectSection[] = [
   {
     id: 'personal',
     title: 'Personal Builds',
-    description: 'A few highlight projects that I built for myself.',
+    description: 'A few highlight projects that I built out of personal interest.',
     projectSlugs: ['AI-Social-Media-Content-Engine', 'Machine-Learning-Traffic-System']
   },
   {
     id: 'work',
     title: 'Client Work',
-    description: 'Latest work for clients.',
+    description: 'Latest work for clients. For confidentiality, I cannot share client specific details, code, or screenshots. But I sure can talk about them.',
     projectSlugs: ['AI-Knowledge-Base-Query-Tool','AWS-Hosted-AI-App-Store-Review-Platform']
   },
   // {
