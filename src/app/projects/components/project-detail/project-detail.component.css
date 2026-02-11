@@ -135,29 +135,69 @@ video.shot {
     overflow: hidden;
   }
 
-  .container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
   .back {
     align-self: flex-start; /* prevents full-width stretch + keeps hitbox tight */
   }
 
   .layout {
-    flex: 1;
+    /* Outer route viewport is non-scrolling on wide screens, so the grid itself
+       must have a bounded height; otherwise a taller `.left` gets clipped. */
+    height: calc(100vh - 125px);
+    height: calc(100dvh - 125px);
     min-height: 0;
   }
 
   .left {
-    position: sticky;
+    /* If the left panel grows taller (e.g. narrow-ish widths cause wrapping),
+       allow it to scroll within the available space instead of running off-screen. */
+    overflow-y: auto;
+    min-height: 0;
+    max-height: 100%;
+    padding-right: 4px; /* avoids overlay scrollbar eating content */
+    padding-bottom: 20px;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
 
   .right {
-    height: calc(100dvh - 88px);
     overflow-y: auto;
+    min-height: 0;
+    height: 100%;
     padding-right: 2px; /* avoids overlay scrollbar eating content */
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  /* Scrollbar styling (helps visibility on non-overlay scrollbars). */
+  .left,
+  .right {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent; /* thumb track */
+  }
+
+  .left::-webkit-scrollbar,
+  .right::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .left::-webkit-scrollbar-track,
+  .right::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .left::-webkit-scrollbar-thumb,
+  .right::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    border: 3px solid transparent; /* creates padding around thumb */
+    background-clip: content-box;
+  }
+
+  .left::-webkit-scrollbar-thumb:hover,
+  .right::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border: 3px solid transparent;
+    background-clip: content-box;
   }
 }
 

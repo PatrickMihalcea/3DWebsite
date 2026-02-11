@@ -1,0 +1,232 @@
+.page {
+  padding: 60px 40px 96px 40px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: rgba(240, 240, 240, 0.92);
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: pan-x pan-y;
+}
+
+
+.viewer {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 10, 0.24);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdfbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.18);
+  /* Critical: keep controls reachable on narrow viewports */
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
+}
+
+.pdfbar__zoom,
+.pdfbar__fit,
+.pdfbar__controls,
+.pdfbar__files {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pdfbar__files {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.pdfbar__btn,
+.pdfbar__action {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(240, 240, 240, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.pdfbar__action {
+  text-decoration: none;
+}
+
+.pdfbar__btn {
+  min-width: 32px;
+  padding: 0 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.pdfbar__btn:hover,
+.pdfbar__action:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.pdfbar__btn:active,
+.pdfbar__action:active {
+  transform: translateY(0);
+}
+
+.pdfbar__btn--wide {
+  min-width: 72px;
+}
+
+.pdfbar__btn.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.30);
+}
+
+.pdfbar__label {
+  width: 84px; /* prevent label from expanding and pushing buttons off-screen */
+  text-align: center;
+  opacity: 0.85;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdfbar__sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  margin: 0 2px;
+}
+
+.viewer__pdf {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: block;
+  background: rgba(0, 0, 0, 0.25);
+  position: relative; /* contain pdf.js absolute layout */
+  z-index: 1;
+  overflow: hidden;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf #viewerContainer {
+  background: transparent !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf #viewerContainer::-webkit-scrollbar {
+  width: 10px;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf #viewerContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf #viewerContainer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf #viewerContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf.is-fit-height #viewerContainer {
+  /* Keep panning possible if the user zooms inside the PDF viewer. */
+  overflow: auto !important;
+  scrollbar-width: none; /* Firefox */
+  overscroll-behavior: contain;
+}
+
+:host ::ng-deep ngx-extended-pdf-viewer.viewer__pdf.is-fit-height #viewerContainer::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 60px 20px 72px 20px;
+  }
+
+  .pdfbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "files"
+      "controls";
+    justify-items: center;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 10px;
+  }
+
+  .pdfbar__sep {
+    display: none;
+  }
+
+  .pdfbar__files {
+    grid-area: files;
+    margin-left: 0;
+    justify-content: center;
+  }
+
+  .pdfbar__controls {
+    grid-area: controls;
+    justify-content: center;
+  }
+
+  .pdfbar__zoom,
+  .pdfbar__fit {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .pdfbar__btn {
+    padding: 0 8px;
+  }
+
+  .pdfbar__btn--wide {
+    min-width: 64px;
+  }
+
+  .pdfbar__btn,
+  .pdfbar__action {
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .pdfbar__label { width: 68px; font-size: 11px; }
+
+  .pdfbar__action {
+    padding: 0 10px;
+  }
+}
+

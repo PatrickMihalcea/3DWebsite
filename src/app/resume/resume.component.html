@@ -1,0 +1,59 @@
+<main class="page" aria-label="Resume">
+  <section class="viewer" aria-label="Resume PDF viewer">
+    @if (isBrowser) {
+      <div class="pdfbar" role="group" aria-label="Resume viewer controls">
+        <div class="pdfbar__controls" role="group" aria-label="Viewer controls">
+          <div class="pdfbar__zoom" role="group" aria-label="Zoom controls">
+            <button class="pdfbar__btn" type="button" (click)="adjustZoom(-10)" aria-label="Zoom out">−</button>
+            <div class="pdfbar__label" aria-label="Current zoom">{{ zoomLabel() }}</div>
+            <button class="pdfbar__btn" type="button" (click)="adjustZoom(10)" aria-label="Zoom in">+</button>
+          </div>
+
+          <div class="pdfbar__sep" aria-hidden="true"></div>
+
+          <div class="pdfbar__fit" role="group" aria-label="Fit controls">
+            <button
+              class="pdfbar__btn pdfbar__btn--wide"
+              type="button"
+              (click)="fitHeight()"
+              [class.is-active]="zoom === 'page-fit'"
+              aria-label="Fit Height"
+            >
+              Fit Height
+            </button>
+            <button
+              class="pdfbar__btn pdfbar__btn--wide"
+              type="button"
+              (click)="fitWidth()"
+              [class.is-active]="zoom === 'page-width'"
+              aria-label="Fit Width"
+            >
+              Fit Width
+            </button>
+          </div>
+        </div>
+
+        <div class="pdfbar__files" role="group" aria-label="Resume file actions">
+          <a class="pdfbar__action" [href]="pdfUrl" target="_blank" rel="noopener">Open</a>
+          <a class="pdfbar__action" [href]="pdfUrl" download>Download</a>
+        </div>
+      </div>
+
+      <ngx-extended-pdf-viewer
+        class="viewer__pdf"
+        [class.is-fit-height]="zoom === 'page-fit'"
+        [src]="pdfUrl"
+        [showToolbar]="false"
+        [showBorders]="showBorders"
+        [spread]="spread"
+        [textLayer]="true"
+        [height]="'100%'"
+        [pageViewMode]="pageViewMode"
+        [scrollMode]="scrollMode"
+        [zoom]="zoom"
+        [backgroundColor]="'transparent'"
+      />
+    }
+  </section>
+</main>
+

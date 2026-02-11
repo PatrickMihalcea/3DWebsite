@@ -6,6 +6,14 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
   { path: 'home', component: HomeComponent, data: { animation: 'home' } },
   {
+    path: 'resume',
+    loadComponent: () => import('./resume/resume.component').then((m) => m.ResumeComponent),
+    // No outer scrolling; the PDF viewer scrolls internally.
+    // `interactive: true` is required because the app disables pointer-events by default
+    // unless a route is marked interactive or scrolling.
+    data: { animation: 'resume', spherePreset: 'home', interactive: true }
+  },
+  {
     path: 'projects',
     component: ProjectsComponent,
     data: { animation: 'projects', spherePreset: 'projects', scrollMode: 'viewport' }
