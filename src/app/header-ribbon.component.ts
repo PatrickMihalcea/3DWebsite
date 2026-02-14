@@ -8,7 +8,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="ribbon">
-      <a class="ribbon__left" routerLink="/home">Patrick<br>Mihalcea</a>
+      <a class="ribbon__left" routerLink="/home">Patrick Mihalcea</a>
       <nav class="ribbon__right">
         <a
           routerLink="/home"
@@ -71,6 +71,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       color: inherit;
       text-decoration: none;
       opacity: 0.92;
+
     }
 
     .ribbon__left:hover {
