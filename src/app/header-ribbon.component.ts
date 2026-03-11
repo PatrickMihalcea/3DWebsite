@@ -26,14 +26,14 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         >
           Projects
         </a>
-        <a
+        <!-- <a
           routerLink="/resume"
           routerLinkActive="is-active"
           #resumeRla="routerLinkActive"
           [attr.aria-current]="resumeRla.isActive ? 'page' : null"
         >
           Resume
-        </a>
+        </a> -->
         <!-- <a href="/contact">Contact</a> -->
       </nav>
     </header>

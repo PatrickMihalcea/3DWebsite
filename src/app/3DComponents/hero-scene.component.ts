@@ -168,7 +168,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
     this.titleRig = new TextRig({
       fontUrl,
-      text: 'DEVELOPER FOR OUT OF THIS WORLD IDEAS.',
+      text: 'DEVELOPING OUT OF THIS WORLD IDEAS.',
       size: 1.0,
       height: 0.18,
       orbitIntensity: 0.18,
