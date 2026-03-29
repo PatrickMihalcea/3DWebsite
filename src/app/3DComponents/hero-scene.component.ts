@@ -54,9 +54,9 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
 
   // Responsive alignment for title
   private readonly mobileBreakpointPx = 865;
-  private currentTitleAlignment: 'left' | 'center' = 'left';
-  private readonly titleMinScaleDesktop = 0.45;
-  private readonly titleMinScaleMobile = 0.75;
+  private currentTitleAlignment: 'left' | 'center' = 'center';
+  private readonly titleMinScaleDesktop = 0.4;
+  private readonly titleMinScaleMobile = 0.25;
   private currentTitleMinScale = this.titleMinScaleDesktop;
 
   // Attachment spring (subtitle)
@@ -169,13 +169,13 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.titleRig = new TextRig({
       fontUrl,
       text: 'DEVELOPING OUT OF THIS WORLD IDEAS.',
-      size: 1.0,
+      size: 3.0,
       height: 0.18,
       orbitIntensity: 0.18,
       positionalFloatingIntensity: 0.30,
-      phobiaSensitivity: -0.35,
-      speed: 0.8,
-      textAlignment: 'left',
+      phobiaSensitivity: -0.55,
+      speed: 0.5,
+      textAlignment: 'center',
       minScale: this.titleMinScaleDesktop,
       wrapSpringIntensity: 0.15,
       material: titleMaterial,
@@ -200,7 +200,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
     this.subtitleRig = new TextRig({
       fontUrl,
       text: 'From "first contact", to launch, to scale.',
-      size: 0.27,
+      size: 0.6,
       height: 0.06,
       bevelEnabled: true,
       bevelThickness: 0.01,
@@ -210,8 +210,8 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       positionalFloatingIntensity: 0.06,
       phobiaSensitivity: -0.42,
       speed: 0.75,
-      textAlignment: 'left',
-      minScale: 0.8,
+      textAlignment: 'center',
+      minScale: 0.2,
       material: subtitleMaterial,
       wrapSpringIntensity: 0.20,
 
@@ -287,7 +287,7 @@ export class HeroSceneComponent implements AfterViewInit, OnDestroy {
       typeof window !== 'undefined' &&
       (window.matchMedia?.(`(max-width: ${this.mobileBreakpointPx}px)`)?.matches ??
         window.innerWidth <= this.mobileBreakpointPx);
-    const desiredTitleAlignment: 'left' | 'center' = isMobile ? 'center' : 'left';
+        const desiredTitleAlignment: 'left' | 'center' = isMobile ? 'center' : 'center';
     if (desiredTitleAlignment !== this.currentTitleAlignment) {
       this.currentTitleAlignment = desiredTitleAlignment;
       this.titleRig.setTextAlignment(desiredTitleAlignment);
