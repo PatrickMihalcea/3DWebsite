@@ -13,6 +13,12 @@ export const PROJECT_SECTIONS: ProjectSection[] = [
     description: 'Latest work for clients. For confidentiality, I cannot share client specific details, code, or screenshots. But I sure can talk about them.',
     projectSlugs: ['AI-Knowledge-Base-Query-Tool','AWS-Hosted-AI-App-Store-Review-Platform']
   },
+  {
+    id: 'experiments',
+    title: 'Experiments',
+    description: 'Interactive 3D experiments and visual prototypes.',
+    projectSlugs: ['Robot-Arm']
+  },
   // {
   //   id: 'experiments',
   //   title: 'ThreeJS explorations',

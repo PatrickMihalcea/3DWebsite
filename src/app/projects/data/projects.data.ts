@@ -169,5 +169,25 @@ export const PROJECTS: Project[] = [
 
     ]
   },
+  {
+    slug: 'Robot-Arm',
+    title: 'Interactive Robot Arm',
+    coverImage: 'assets/images/RobotArm_Base.png',
+    hoverImage: 'assets/images/RobotArm_Hover.png',
+    description: `This is an interactive 3D robot arm that I built using Spline and NextJS. It is a simple robot arm that can be controlled with the mouse.`,
+    techStack: [
+      'Java',
+      'NextJS',
+      'Spline',
+    ],
+    gallery: [
+      'assets/images/RobotArm_Base.png',
+      'assets/images/RobotArm_Hover.png',
+    ],
+    links: [
+      { label: 'Live', url: 'https://robot-arm-9ei.pages.dev/' },
+      { label: 'Code', url: 'https://github.com/PatrickMihalcea/Robot-Arm'},
+    ]
+  },
 ];
 
