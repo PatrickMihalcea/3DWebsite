@@ -185,8 +185,28 @@ export const PROJECTS: Project[] = [
       'assets/images/RobotArm_Hover.png',
     ],
     links: [
-      { label: 'Live', url: 'https://robot-arm-9ei.pages.dev/' },
-      { label: 'Code', url: 'https://github.com/PatrickMihalcea/Robot-Arm'},
+      { label: 'Live', url: 'https://3d-experiments.pages.dev/robot-arm' },
+      { label: 'Code', url: 'https://github.com/PatrickMihalcea/3D-Experiments'},
+    ]
+  },
+  {
+    slug: 'Skipping-Stones',
+    title: 'Skipping Stones',
+    coverImage: 'assets/images/Stones_Base.png',
+    hoverImage: 'assets/images/Stones_Hover.png',
+    description: `This background asset was created and animated in Spline.`,
+    techStack: [
+      'Java',
+      'NextJS',
+      'Spline',
+    ],
+    gallery: [
+      'assets/images/Stones_Base.png',
+      'assets/images/Stones_Hover.png',
+    ],
+    links: [
+      { label: 'Live', url: 'https://3d-experiments.pages.dev/skipping-stones' },
+      { label: 'Code', url: 'https://github.com/PatrickMihalcea/3D-Experiments'},
     ]
   },
 ];
