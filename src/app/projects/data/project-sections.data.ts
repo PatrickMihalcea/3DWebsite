@@ -17,7 +17,7 @@ export const PROJECT_SECTIONS: ProjectSection[] = [
     id: 'experiments',
     title: 'Experiments',
     description: 'Interactive 3D experiments and visual prototypes.',
-    projectSlugs: ['Robot-Arm']
+    projectSlugs: ['Robot-Arm', 'Skipping-Stones']
   },
   // {
   //   id: 'experiments',
